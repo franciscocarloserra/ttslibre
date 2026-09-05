@@ -1,0 +1,6 @@
+todelete/
+__pycache__/
+*.wav
+*.pt
+*.onnx
+drafts/
