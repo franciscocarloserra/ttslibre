@@ -1,12 +1,12 @@
 [submodule "references/supertonic"]
-	path = references/supertonic
+	path = docs/references/supertonic
 	url = https://github.com/supertone-inc/supertonic
 [submodule "references/kokoro"]
-	path = references/kokoro
+	path = docs/references/kokoro
 	url = https://github.com/hexgrad/kokoro
 [submodule "references/styletts2"]
-	path = references/styletts2
+	path = docs/references/styletts2
 	url = https://github.com/yl4579/StyleTTS2
 [submodule "references/istftnet"]
-	path = references/istftnet
+	path = docs/references/istftnet
 	url = https://github.com/rishikksh20/iSTFTNet-pytorch

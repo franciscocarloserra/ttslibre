@@ -1,0 +1,9 @@
+runs
+data/
+*.wav
+*.pt
+*.onnx
+*.npy
+*.flac
+*.mp3
+venv

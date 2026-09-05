@@ -42,12 +42,12 @@ Both lineages show sub-100M models reaching usable quality on hundreds, not thou
 
 ## In this repo
 
-Papers, under `references/papers/`:
+Papers (PDFs cached locally under `docs/references/papers/`, not tracked):
 - `supertonictts-2503.23108.pdf` (22 pages)
 - `styletts2-2306.07691.pdf` (28 pages)
 - `istftnet-2203.02395.pdf` (6 pages)
 
-Implementations, as git submodules under `references/`:
+Implementations, as git submodules under `docs/references/`:
 - `supertonic/` — supertone-inc/supertonic, inference only, ONNX, MIT code.
 - `kokoro/` — hexgrad/kokoro, inference only, Apache 2.0.
 - `styletts2/` — yl4579/StyleTTS2, full training code. Kokoro is a fine-tune of this lineage.

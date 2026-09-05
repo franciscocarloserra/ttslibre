@@ -72,7 +72,7 @@ Worst case this ends as a distillation of Kokoro and Supertonic with a public re
 
 ## Two candidate lineages
 
-The bake-off starts from what already works. Both reference implementations are vendored as submodules under `references/`.
+The bake-off starts from what already works. Both reference implementations are vendored as submodules under `docs/references/`.
 
 - **StyleTTS 2 + ISTFTNet** (Kokoro's lineage). Training code exists and is public. Phoneme input, style diffusion optional, fast ISTFT vocoder.
 - **Flow matching over a compressed latent** (Supertonic's lineage). Paper published, no training code. Character input, no G2P, no aligner, ConvNeXt blocks.
@@ -86,11 +86,16 @@ The bake-off starts from what already works. Both reference implementations are 
 
 ## Repo layout
 
-
-- `docs/REFERENCES.md` sourced facts about the models this builds on.
-- `docs/COORDINATION.md` how work is organized, data rules.
-- `references/` papers as PDF and upstream implementations as submodules.
+- `AGENTS.md` operating brief for humans and agents.
+- `docs/` sourced facts: `ARCHITECTURES.md`, `DATASETS.md`, `REFERENCES.md`, `COORDINATION.md`.
+- `docs/references/` upstream implementations as submodules (papers linked in `docs/REFERENCES.md`).
+- `experiments/NNN-*/` one directory per experiment, each with its README, config and result.
+- Training data is not in git. It is distributed via Hugging Face (`ttslibre`); license audit in `docs/LICENSES.md`.
 
 ## Status
 
-Pre-alpha. No training code yet. Clone with `--recurse-submodules` to get the references.
+Pre-alpha. The Supertonic-lineage prototype in `experiments/` trains end to end (latent autoencoder, text-to-latent flow matching, ONNX export, Whisper WER in TensorBoard). First alignment reached on 2026-09-05: a 4-utterance overfit reaches WER 0.15 in 1000 steps on 1.4 GiB VRAM (`experiments/002-overfit-sweep/RESULTS.md`). Nothing generalizes yet.
+
+![First alignment: TensorBoard WER curve dropping to 0.15 next to the training log](docs/img/first-alignment-002-overfit4.png)
+
+Clone with `--recurse-submodules` to get the references.

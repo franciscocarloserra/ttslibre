@@ -4,3 +4,7 @@ __pycache__/
 *.pt
 *.onnx
 drafts/
+datasets
+docs/references/papers/
+docs/research/papers/
+docs/research/
