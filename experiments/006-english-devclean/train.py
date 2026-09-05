@@ -125,7 +125,7 @@ def validate():
 
 
 def save():
-    torch.save({"model": model.state_dict(), "opt": opt.state_dict(), "step": step, "vocab": tok.vocab}, os.path.join(run, "ttl.pt"))
+    torch.save({"model": model.state_dict(), "opt": opt.state_dict(), "step": step, "vocab": tok.vocab, "elapsed": time.time() - t0}, os.path.join(run, "ttl.pt"))
 
 
 from torch.utils.tensorboard import SummaryWriter
@@ -214,6 +214,7 @@ def sample(step):
 
 log = open(os.path.join(run, "progress.log"), "a")
 t0, order = time.time(), []
+if resume and step: t0 -= ck.get("elapsed", 0)  # budget clock continues across restarts
 while step < steps:
     if not order:
         order = rows[:]; random.shuffle(order)
