@@ -13,4 +13,4 @@
 ./venv/bin/python train.py --run all185
 ```
 
-**Result.** pending (`RESULTS.md`)
+**Result.** crashed with NaN at 12 min, lr 2e-3 too high (`RESULTS.md`).
