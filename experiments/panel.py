@@ -77,7 +77,7 @@ steps <input id=steps value="%d"> cfg <input id=cfg value="%s"> duration scale <
 let cur=null;const AU=new Audio();AU.onended=()=>{if(cur){cur.textContent='▶ '+cur.dataset.d;cur=null}};
 function pl(b){if(cur===b){AU.pause();AU.currentTime=0;b.textContent='▶ '+b.dataset.d;cur=null;return}if(cur){cur.textContent='▶ '+cur.dataset.d}cur=b;AU.src=b.dataset.src;AU.play();b.textContent='■ '+b.dataset.d}
 function btn(src){return `<button class=play data-src="${src}" data-d="…" onclick="pl(this)">▶ …</button>`}
-async function durs(){for(const b of document.querySelectorAll('button.play[data-d="…"]')){const a=new Audio(b.dataset.src);a.onloadedmetadata=()=>{const d=a.duration.toFixed(1)+'s';b.dataset.d=d;if(b!==cur)b.textContent='▶ '+d}}}
+const DUR={};function durs(){for(const b of document.querySelectorAll('button.play[data-d="…"]')){const k=b.dataset.src;if(DUR[k]){b.dataset.d=DUR[k];b.textContent='▶ '+DUR[k];continue}if(DUR[k]===null)continue;DUR[k]=null;const a=new Audio();a.preload='metadata';a.onloadedmetadata=()=>{DUR[k]=a.duration.toFixed(1)+'s';durs()};a.src=k}}
 const COL={train:'#6c6',knownwords:'#fc6',heldout1:'#f66',heldout2:'#c6f'};
 const el=(t,a)=>{const e=document.createElementNS('http://www.w3.org/2000/svg',t);for(const k in a)e.setAttribute(k,a[k]);return e};
 async function load(){const j=await (await fetch('/rounds?run='+encodeURIComponent(view.value))).json();const d=j.rounds,S=j.sentences;
@@ -93,7 +93,7 @@ const legend=Object.entries(S).map(([n,x])=>`<div style="color:${COL[n]||'#aaa'}
 h+='<details open><summary>the sentences</summary>'+legend+'</details>';
 steps.forEach((s,i)=>{const rs=d.filter(r=>r.step==s);h+=`<div style="border:1px solid #333;border-radius:6px;padding:.5em;margin:.6em 0"><div style="color:#aaa;margin-bottom:.3em">round ${N-i} of ${N} &middot; step ${s}${rs[0].elapsed?' &middot; '+rs[0].elapsed+' into the run':''}</div><table>`;
 for(const r of rs) h+=`<tr><td style="color:${COL[r.name]||'#aaa'};white-space:nowrap;width:9em"><b>${r.name}</b><br>wer ${r.wer.toFixed(2)}</td><td style="width:6em">${btn(`/wav?run=${encodeURIComponent(view.value)}&f=${r.name}_step_${String(s).padStart(6,'0')}.wav`)}</td><td style="color:#999">input: <span style="color:#ddd">${(S[r.name]||{}).text||''}</span><br>whisper: <span style="color:#ddd">${r.heard}</span></td></tr>`;h+='</table></div>'});
-document.getElementById('rounds').innerHTML=h;durs()}
+const el=document.getElementById('rounds');if(el.dataset.h!==h){el.innerHTML=h;el.dataset.h=h;durs()}}
 load();setInterval(load,15000);
 async function go(){const b=document.querySelector('button');b.disabled=true;out.textContent='generating...';
 const r=await fetch('/synth',{method:'POST',body:JSON.stringify({run:view.value+'/ttl.pt',text:text.value,ref:ref.value,steps:+steps.value,cfg:+cfg.value,dur:+dur.value})});
