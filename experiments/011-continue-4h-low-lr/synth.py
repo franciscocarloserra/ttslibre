@@ -1,5 +1,5 @@
 """Synthesize: text + reference wav -> wav. Euler flow-matching sampler with CFG, latent AE decode, Vocos.
-Usage: synth.py "text" out.wav [--ref ref.wav] [--cpu] [--run runs/ttl]"""
+Usage: synth.py "text" out.wav [--ref ref.wav | --ref voices/name.pt] [--cpu] [--run runs/ttl]"""
 import json, os, sys, time
 import torch, soundfile as sf
 from common import load_config, TTL, LatentAE, Tokenizer, Mel, compress, decompress, lengths_to_mask, P
@@ -33,6 +33,14 @@ class Synth:
         z = (self.ae.encode(self.mel(x)) - self.mean) / self.std
         zref = compress(z, self.K)
         return zref, lengths_to_mask(torch.tensor([zref.shape[2]], device=self.dev))
+
+    def style_from_voice(self, path):
+        """Voicepack made by voice.py: saved compressed reference latents."""
+        zref = torch.load(path, map_location=self.dev)["zref"].float()
+        return zref, lengths_to_mask(torch.tensor([zref.shape[2]], device=self.dev))
+
+    def style(self, ref):
+        return self.style_from_voice(ref) if ref.endswith(".pt") else self.style_from_wav(ref)
 
     @torch.no_grad()
     def __call__(self, text, zref, rmask, steps=None, cfg=None, duration_scale=None):
@@ -70,7 +78,7 @@ if __name__ == "__main__":
     if cpu:
         torch.set_num_threads(c["synth"]["cpu_threads"])
     S = Synth(c, run=run, device="cpu" if cpu else None)
-    zref, rmask = S.style_from_wav(ref)
+    zref, rmask = S.style(ref)
     t0 = time.time(); wav, dur = S(text, zref, rmask); el = time.time() - t0
     sf.write(out, wav, c["data"]["sample_rate"])
     print(json.dumps({"seconds": round(len(wav) / c["data"]["sample_rate"], 2), "gen_s": round(el, 3), "rtf": round(el / max(dur, 1e-6), 3), "device": S.dev}))

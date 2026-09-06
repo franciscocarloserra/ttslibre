@@ -128,9 +128,11 @@ def whisper(data):
 
 class H(BaseHTTPRequestHandler):
     def do_GET(self):
-        if self.path == "/refs":  # voices: reference clips listed in 007's config
+        if self.path == "/refs":  # voices: 007 reference clips + voices/*.pt
             r = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "007-zero-shot-voice", "config.json")))["refs"]["refs"]
-            body = json.dumps({k: os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "007-zero-shot-voice", v)) for k, v in r.items()}).encode()
+            R = {k: os.path.abspath(os.path.join(HERE, "007-zero-shot-voice", v)) for k, v in r.items()}
+            R.update({os.path.basename(f)[:-3]: f for f in sorted(glob.glob(os.path.join(HERE, "voices", "*.pt")))})  # voicepacks made by voice.py
+            body = json.dumps(R).encode()
             self.send_response(200); self.send_header("Content-Type", "application/json"); self.end_headers(); self.wfile.write(body); return
         if self.path.startswith("/rounds?"):
             body = json.dumps(rounds(self.path.split("run=")[1].replace("%2F", "/"))).encode()
@@ -159,7 +161,7 @@ class H(BaseHTTPRequestHandler):
         q = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
         try:
             S = get_synth(q["run"])
-            zref, rmask = S.style_from_wav(q["ref"])
+            zref, rmask = S.style(q["ref"]) if hasattr(S, "style") else S.style_from_wav(q["ref"])
             t0 = time.time(); wav, dur = S(q["text"], zref, rmask, steps=q["steps"], cfg=q["cfg"], duration_scale=q["dur"]); el = time.time() - t0
             buf = io.BytesIO(); sf.write(buf, wav, c["data"]["sample_rate"], format="WAV")
             info = json.dumps({"seconds": round(dur, 2), "gen_s": round(el, 2), "rtf": round(el / max(dur, 1e-6), 2), "device": S.dev})
