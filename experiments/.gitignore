@@ -7,3 +7,4 @@ data/
 *.flac
 *.mp3
 venv
+!voices/*.pt
