@@ -1,6 +1,6 @@
 """Experiments panel: WER chart + sample rounds of any run, and interactive synthesis from any checkpoint.
 Lives in experiments/; imports code and config from one experiment dir (--exp NAME, default: newest).
-Usage: panel.py [--exp 004-word-generalization]   -> http://localhost:<panel.port>"""
+Usage: panel.py [--exp 004-does-it-learn-words-or-sentences]   -> http://localhost:<panel.port>"""
 import glob, io, json, os, re, sys, time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -129,8 +129,8 @@ def whisper(data):
 class H(BaseHTTPRequestHandler):
     def do_GET(self):
         if self.path == "/refs":  # voices: reference clips listed in 007's config
-            r = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "007-style-refs", "config.json")))["refs"]["refs"]
-            body = json.dumps({k: os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "007-style-refs", v)) for k, v in r.items()}).encode()
+            r = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "007-does-voice-transfer-zero-shot", "config.json")))["refs"]["refs"]
+            body = json.dumps({k: os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "007-does-voice-transfer-zero-shot", v)) for k, v in r.items()}).encode()
             self.send_response(200); self.send_header("Content-Type", "application/json"); self.end_headers(); self.wfile.write(body); return
         if self.path.startswith("/rounds?"):
             body = json.dumps(rounds(self.path.split("run=")[1].replace("%2F", "/"))).encode()

@@ -71,3 +71,6 @@ Ultraminimal. Only what the requested step needs. English everywhere. Report fac
 
 ## Partial checkpoints (from the user)
 Every training run keeps at least 4 partial checkpoints spread over its time budget (`ttl.keep_checkpoints`, weights only, `runs/<run>/ttl_<elapsed>_step<N>.pt`), plus `best.pt` (best held-out WER) and `ttl.pt` (latest, resumable). Reason: 006 stabilized at 3 h of a 7 h run and the 3 h weights were gone; partial checkpoints let the next experiment start from any point of the curve.
+
+## Experiment names (from the user)
+Directory names state the question the experiment answers, in plain words: `NNN-<question-as-a-slug>` (e.g. `006-does-it-generalize-with-40-speakers`). No cryptic names. Renamed on 2026-09-06; run dirs on the HDD keep the number only (`/media/usuario/hdd-unencrypted/ttslibre/NNN/runs`).

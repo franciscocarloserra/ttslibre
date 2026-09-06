@@ -22,4 +22,4 @@ LibriTTS-R dev-clean: 4980 utterances, 40 speakers, 6.64 h, char vocab 67. Mels 
 ## What we learned
 
 - Pipeline (prep, AE, training, sampling, Whisper WER in TensorBoard, ONNX export) works end to end.
-- With these settings, alignment did not emerge within the step budget on 185 clips or on 6.6 h multi-speaker. Alignment was first obtained in experiment 002 with a 4-utterance overfit and stronger settings (see `../002-overfit-sweep/RESULTS.md`).
+- With these settings, alignment did not emerge within the step budget on 185 clips or on 6.6 h multi-speaker. Alignment was first obtained in experiment 002 with a 4-utterance overfit and stronger settings (see `../002-can-it-overfit-4-sentences/RESULTS.md`).

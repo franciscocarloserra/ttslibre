@@ -13,9 +13,9 @@
     "max_seconds": 12.0,
     "val_fraction": 0.02,
     "seed": 0,
-    "speaker": "1988",
-    "max_utts": 16,
-    "max_clip_seconds": 4.0
+    "speaker": "",
+    "max_utts": 0,
+    "max_clip_seconds": 0
   },
   "latent": {
     "dim": 24,
@@ -73,34 +73,43 @@
     "ref_max_seconds": 4.0,
     "ref_max_fraction": 0.5,
     "batch_expand": 8,
-    "steps": 2000,
+    "steps": 200000,
     "batch": 16,
     "max_seconds": 8.0,
-    "lr": 0.001,
-    "lr_halve_every": 100000,
-    "warmup": 100,
+    "lr": 0.0005,
+    "lr_halve_every": 60000,
+    "warmup": 500,
     "amp": true,
     "grad_clip": 5.0,
     "log_every": 25,
-    "ckpt_every": 100,
-    "val_every": 500,
-    "sample_every": 100,
-    "sample_text": "He was neatly dressed.",
+    "ckpt_every": 2000,
+    "val_every": 5000,
+    "sample_every": 2000,
+    "sample_text": "He was nineteen years old, short and broad backed, with a close cropped, flat head, and a wide, flat face.",
     "sample_steps": 16,
     "sample_cfg": 1.0,
-    "max_minutes": 5,
-    "sample_heldout_n": 1,
+    "max_minutes": 480,
+    "sample_heldout_n": 3,
     "stop_wer_window": 3,
-    "init_from": "../002-overfit-sweep/runs/overfit4/ttl.pt",
-    "fail_after_minutes": 3,
-    "fail_wer": 0.5,
+    "init_from": "../004-does-it-learn-words-or-sentences/runs/w16/ttl.pt",
+    "fail_after_minutes": 60,
+    "fail_wer": 0.8,
     "sample_extra": [
       [
         "knownwords",
         "Pop was at the beach with Hilda and the boss all evening."
+      ],
+      [
+        "novel1",
+        "The quick brown fox jumps over the lazy dog."
+      ],
+      [
+        "novel2",
+        "Please call the doctor before noon tomorrow."
       ]
     ],
-    "stop_wer": 0.3
+    "stop_wer": 0.2,
+    "keep_checkpoints": 4
   },
   "dp": {
     "char_dim": 64,
