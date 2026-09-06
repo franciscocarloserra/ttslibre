@@ -70,7 +70,7 @@ table{width:100%%;font-size:13px;border-collapse:collapse}td{padding:2px 4px;ver
 <button onclick="go()">generate</button>
 <div id=gen style="margin-top:.5em"></div><pre id=out></pre>
 <details><summary>advanced</summary>
-ref clip <input id=ref value="%s">
+voice <select id=refsel onchange="ref.value=this.value"></select> ref clip <input id=ref value="%s" size=60>
 steps <input id=steps value="%d"> cfg <input id=cfg value="%s"> duration scale <input id=dur value="%s"></details>
 </div><div id=rounds></div></div>
 <script>
@@ -95,6 +95,7 @@ steps.forEach((s,i)=>{const rs=d.filter(r=>r.step==s);h+=`<div style="border:1px
 for(const r of rs) h+=`<tr><td style="color:${COL[r.name]||'#aaa'};white-space:nowrap;width:9em"><b>${r.name}</b><br>wer ${r.wer.toFixed(2)}</td><td style="width:6em">${btn(`/wav?run=${encodeURIComponent(view.value)}&f=${r.name}_step_${String(s).padStart(6,'0')}.wav`)}</td><td style="color:#999">input: <span style="color:#ddd">${(S[r.name]||{}).text||''}</span><br>whisper: <span style="color:#ddd">${r.heard}</span></td></tr>`;h+='</table></div>'});
 const el=document.getElementById('rounds');if(el.dataset.h!==h){el.innerHTML=h;el.dataset.h=h;durs()}}
 load();setInterval(load,15000);
+(async()=>{const R=await (await fetch('/refs')).json();refsel.innerHTML=Object.entries(R).map(([k,v])=>`<option value="${v}"${v===ref.value?' selected':''}>${k}</option>`).join('')})();
 async function go(){const b=document.querySelector('button');b.disabled=true;out.textContent='generating...';
 const r=await fetch('/synth',{method:'POST',body:JSON.stringify({run:view.value+'/ttl.pt',text:text.value,ref:ref.value,steps:+steps.value,cfg:+cfg.value,dur:+dur.value})});
 if(!r.ok){out.textContent=await r.text();b.disabled=false;return}
@@ -104,6 +105,10 @@ const u=URL.createObjectURL(await r.blob());gen.innerHTML=btn(u);durs();pl(gen.f
 
 class H(BaseHTTPRequestHandler):
     def do_GET(self):
+        if self.path == "/refs":  # voices: reference clips listed in 007's config
+            r = json.load(open("007-style-refs/config.json"))["refs"]["refs"]
+            body = json.dumps({k: os.path.abspath(os.path.join("007-style-refs", v)) for k, v in r.items()}).encode()
+            self.send_response(200); self.send_header("Content-Type", "application/json"); self.end_headers(); self.wfile.write(body); return
         if self.path.startswith("/rounds?"):
             body = json.dumps(rounds(self.path.split("run=")[1].replace("%2F", "/"))).encode()
             self.send_response(200); self.send_header("Content-Type", "application/json"); self.end_headers(); self.wfile.write(body); return
