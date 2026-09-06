@@ -1,0 +1,169 @@
+{
+  "data": {
+    "raw_dir": "../../datasets/rioplatense/raw",
+    "prep_dir": "../../datasets/rioplatense/prep",
+    "sample_rate": 24000,
+    "n_fft": 1024,
+    "hop": 256,
+    "n_mels": 100,
+    "mel_fmin": 0,
+    "mel_fmax": 12000,
+    "log_clamp": 1e-05,
+    "min_seconds": 1.0,
+    "max_seconds": 12.0,
+    "val_fraction": 0.1,
+    "seed": 0,
+    "speaker": "",
+    "max_utts": 0,
+    "max_clip_seconds": 0,
+    "source": "YouTube b0GKWQi5d7w (Sabato reads El Tunel)",
+    "license": "copyrighted, local PoC only, never distributed",
+    "manifest": "rioplatense-sabato.jsonl",
+    "base_vocab": "../../datasets/libritts-r/prep/vocab.json",
+    "latent_stats": "../../datasets/libritts-r/prep/latent_stats.pt"
+  },
+  "latent": {
+    "dim": 24,
+    "compress": 6
+  },
+  "ae": {
+    "hidden": 256,
+    "intermediate": 1024,
+    "kernel": 7,
+    "enc_layers": 6,
+    "dec_layers": 6,
+    "epochs": 40,
+    "batch": 16,
+    "crop_frames": 384,
+    "lr": 0.0002,
+    "amp": true,
+    "log_every": 50
+  },
+  "ttl": {
+    "char_dim": 128,
+    "text_hidden": 128,
+    "text_intermediate": 512,
+    "text_conv_layers": 6,
+    "text_conv_dilations": [
+      1,
+      1,
+      2,
+      2,
+      4,
+      4
+    ],
+    "text_attn_layers": 4,
+    "text_attn_heads": 4,
+    "ref_hidden": 128,
+    "ref_intermediate": 512,
+    "ref_conv_layers": 6,
+    "n_style": 50,
+    "vf_hidden": 256,
+    "vf_intermediate": 1024,
+    "vf_blocks": 4,
+    "vf_dilations": [
+      1,
+      2,
+      4,
+      8
+    ],
+    "vf_plain_layers": 2,
+    "vf_last_layers": 4,
+    "vf_heads": 4,
+    "kernel": 5,
+    "time_dim": 64,
+    "sigma_min": 1e-08,
+    "p_uncond": 0.0,
+    "ref_min_seconds": 0.5,
+    "ref_max_seconds": 4.0,
+    "ref_max_fraction": 0.5,
+    "batch_expand": 8,
+    "steps": 200000,
+    "batch": 16,
+    "max_seconds": 8.0,
+    "lr": 0.0005,
+    "lr_halve_every": 100000,
+    "warmup": 500,
+    "amp": true,
+    "grad_clip": 5.0,
+    "log_every": 25,
+    "ckpt_every": 2000,
+    "val_every": 5000,
+    "sample_every": 2000,
+    "sample_text": "y que no se necesitan mayores explicaciones sobre mi persona.",
+    "sample_steps": 16,
+    "sample_cfg": 1.0,
+    "max_minutes": 120,
+    "sample_heldout_n": 2,
+    "stop_wer_window": 3,
+    "init_from": "",
+    "fail_after_minutes": 100000,
+    "fail_wer": 9,
+    "sample_extra": [
+      [
+        "novel1",
+        "Ma\u00f1ana vamos a la playa con los chicos."
+      ],
+      [
+        "novel2",
+        "El perro corre por el parque todas las tardes."
+      ]
+    ],
+    "stop_wer": 0.2,
+    "keep_checkpoints": 4,
+    "lang": "es"
+  },
+  "dp": {
+    "char_dim": 64,
+    "intermediate": 256,
+    "conv_layers": 6,
+    "attn_layers": 2,
+    "attn_heads": 2,
+    "ref_layers": 4,
+    "n_style": 8,
+    "style_dim": 16,
+    "hidden": 128,
+    "loss_weight": 0.1
+  },
+  "synth": {
+    "steps": 16,
+    "cfg": 2.0,
+    "duration_scale": 1.0,
+    "cpu_threads": 8,
+    "ref_clip": "../../datasets/rioplatense/raw/sabato/1/sabato_0005.wav"
+  },
+  "eval": {
+    "sentences": "sentences.txt",
+    "whisper_url": "http://localhost:6969/transcribe",
+    "whisper_token_env": "WHISPER_TOKEN",
+    "tts_url": "http://localhost:6971/tts",
+    "tts_token_env": "TTS_TOKEN",
+    "kokoro_voice": "af_heart",
+    "supertonic_voice": "F5",
+    "out_dir": "runs/eval",
+    "samples_dir": "samples",
+    "n_samples": 3,
+    "ogg_quality": 3
+  },
+  "smoke": {
+    "ae_epochs": 1,
+    "ttl_steps": 10,
+    "batch": 4,
+    "max_seconds": 8.0
+  },
+  "panel": {
+    "port": 7807,
+    "device": "cuda",
+    "cpu_threads": 8,
+    "runs_glob": "../*/runs/*/ttl.pt"
+  },
+  "segment": {
+    "source": "source.wav",
+    "speaker": "sabato",
+    "noise_db": -35,
+    "min_silence": 0.35,
+    "min_seconds": 1.5,
+    "max_seconds": 10.0,
+    "max_clips": 100000
+  }
+}
