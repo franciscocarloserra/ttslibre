@@ -140,7 +140,7 @@ class H(BaseHTTPRequestHandler):
             if not os.path.exists(f): f = os.path.join(q["run"].replace("%2F", "/"), "samples", q["f"].split("_", 1)[1])  # 002 layout: step_XXXXXX.wav
             if not os.path.exists(f): self.send_response(404); self.end_headers(); return
             self.send_response(200); self.send_header("Content-Type", "audio/wav"); self.end_headers(); self.wfile.write(open(f, "rb").read()); return
-        runs = sorted(glob.glob(P(p["runs_glob"])), key=os.path.getmtime, reverse=True)
+        runs = sorted([r for r in glob.glob(P(p["runs_glob"])) if "todelete" not in r], key=os.path.getmtime, reverse=True)
         views = "".join(f"<option value='{os.path.dirname(r)}'>{os.path.relpath(r, P('..')).rsplit('/', 1)[0]}</option>" for r in runs)
         opts = "".join(f"<option value='{r}'>{os.path.relpath(r, P('..'))} ({time.strftime('%H:%M', time.localtime(os.path.getmtime(r)))})</option>" for r in runs)
         s = c["synth"]
