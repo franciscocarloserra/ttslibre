@@ -100,8 +100,8 @@ load();setInterval(load,15000);
 async function go(){const b=document.querySelector('button');b.disabled=true;out.textContent='generating...';
 const r=await fetch('/synth',{method:'POST',body:JSON.stringify({run:view.value+'/ttl.pt',text:text.value,ref:ref.value,steps:+steps.value,cfg:+cfg.value,dur:+dur.value})});
 if(!r.ok){out.textContent=await r.text();b.disabled=false;return}
-const blob=await r.blob();const u=URL.createObjectURL(blob);gen.innerHTML=btn(u);durs();pl(gen.firstChild);out.textContent=decodeURIComponent(r.headers.get('x-info'))+'\nwer: checking...';b.disabled=false;
-const w=await (await fetch('/wer',{method:'POST',headers:{'X-Text':encodeURIComponent(text.value)},body:blob})).json();out.textContent=out.textContent.replace('wer: checking...',w.error?'wer: failed '+w.error:`wer ${w.wer.toFixed(2)}\nwhisper: ${w.heard}`)}
+const blob=await r.blob();const u=URL.createObjectURL(blob);gen.innerHTML=btn(u);durs();pl(gen.firstChild);out.textContent=decodeURIComponent(r.headers.get('x-info'))+'\\nwer: checking...';b.disabled=false;
+const w=await (await fetch('/wer',{method:'POST',headers:{'X-Text':encodeURIComponent(text.value)},body:blob})).json();out.textContent=out.textContent.replace('wer: checking...',w.error?'wer: failed '+w.error:`wer ${w.wer.toFixed(2)}\\nwhisper: ${w.heard}`)}
 </script>"""
 
 
