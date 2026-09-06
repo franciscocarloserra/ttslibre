@@ -99,8 +99,30 @@ load();setInterval(load,15000);
 async function go(){const b=document.querySelector('button');b.disabled=true;out.textContent='generating...';
 const r=await fetch('/synth',{method:'POST',body:JSON.stringify({run:view.value+'/ttl.pt',text:text.value,ref:ref.value,steps:+steps.value,cfg:+cfg.value,dur:+dur.value})});
 if(!r.ok){out.textContent=await r.text();b.disabled=false;return}
-const u=URL.createObjectURL(await r.blob());gen.innerHTML=btn(u);durs();pl(gen.firstChild);out.textContent=decodeURIComponent(r.headers.get('x-info'));b.disabled=false}
+const blob=await r.blob();const u=URL.createObjectURL(blob);gen.innerHTML=btn(u);durs();pl(gen.firstChild);out.textContent=decodeURIComponent(r.headers.get('x-info'))+'\nwer: checking...';b.disabled=false;
+const w=await (await fetch('/wer',{method:'POST',headers:{'X-Text':encodeURIComponent(text.value)},body:blob})).json();out.textContent=out.textContent.replace('wer: checking...',w.error?'wer: failed '+w.error:`wer ${w.wer.toFixed(2)}\nwhisper: ${w.heard}`)}
 </script>"""
+
+
+import urllib.request, urllib.parse, subprocess
+from num2words import num2words
+_e = c["eval"]
+_tok = os.environ.get(_e["whisper_token_env"]) or subprocess.run(["bash", "-c", "grep -o 'TTS_TOKEN:-[0-9a-f]*' ~/projects/know-how/local-tts/tts | cut -d- -f2"], capture_output=True, text=True).stdout.strip()
+_norm = lambda x: re.sub(r"[^a-z' ]", " ", re.sub(r"\d+", lambda m: num2words(int(m.group())), x.lower())).split()
+
+
+def wer(ref, hyp):
+    a, b = _norm(ref), _norm(hyp); dd = list(range(len(b) + 1))
+    for i in range(1, len(a) + 1):
+        prev, dd[0] = dd[0], i
+        for j in range(1, len(b) + 1):
+            cur = min(dd[j] + 1, dd[j - 1] + 1, prev + (a[i - 1] != b[j - 1])); prev, dd[j] = dd[j], cur
+    return dd[len(b)] / max(len(a), 1)
+
+
+def whisper(data):
+    req = urllib.request.Request(_e["whisper_url"], data=data, headers={"Authorization": f"Bearer {_tok}"})
+    return urllib.request.urlopen(req, timeout=120).read().decode()
 
 
 class H(BaseHTTPRequestHandler):
@@ -126,6 +148,13 @@ class H(BaseHTTPRequestHandler):
         self.send_response(200); self.send_header("Content-Type", "text/html; charset=utf-8"); self.end_headers(); self.wfile.write(body)
 
     def do_POST(self):
+        if self.path == "/wer":  # body = wav bytes, X-Text = expected sentence -> {wer, heard}
+            data = self.rfile.read(int(self.headers["Content-Length"])); text = urllib.parse.unquote(self.headers["X-Text"])
+            try:
+                heard = whisper(data); body = json.dumps({"wer": round(wer(text, heard), 2), "heard": heard})
+            except Exception as ex:
+                body = json.dumps({"error": str(ex)})
+            self.send_response(200); self.send_header("Content-Type", "application/json"); self.end_headers(); self.wfile.write(body.encode()); return
         q = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
         try:
             S = get_synth(q["run"])
