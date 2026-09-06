@@ -94,7 +94,7 @@ The bake-off starts from what already works. Both reference implementations are 
 
 ## Status
 
-Pre-alpha. The Supertonic-lineage prototype in `experiments/` trains end to end (latent autoencoder, text-to-latent flow matching, ONNX export, Whisper WER in TensorBoard). First alignment reached on 2026-09-05: a 4-utterance overfit reaches WER 0.15 in 1000 steps on 1.4 GiB VRAM (`experiments/002-can-it-overfit-4-sentences/RESULTS.md`). Nothing generalizes yet.
+Pre-alpha. The Supertonic-lineage prototype in `experiments/` trains end to end (latent autoencoder, text-to-latent flow matching, ONNX export, Whisper WER in TensorBoard). First alignment reached on 2026-09-05: a 4-utterance overfit reaches WER 0.15 in 1000 steps on 1.4 GiB VRAM (`experiments/002-overfit-4-sentences/RESULTS.md`). Nothing generalizes yet.
 
 ![First alignment: TensorBoard WER curve dropping to 0.15 next to the training log](docs/img/first-alignment-002-overfit4.png)
 

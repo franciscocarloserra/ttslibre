@@ -16,7 +16,7 @@ Derived data (mels, latents, alignments, subsets) can be redistributed under CC0
 
 Sources: https://www.openslr.org/141/ ("License: CC BY 4.0"), https://huggingface.co/datasets/mythicinfinity/libritts_r ("License: CC BY 4.0"). Parent LibriTTS: https://www.openslr.org/60/ ("License: CC BY 4.0").
 
-CC BY 4.0 requires attribution and a link to the license for the material and adaptations of it. A dataset derived from it cannot be relabeled CC0. It fits the "attributed track" defined in `docs/COORDINATION.md`, not the CC0 main dataset. Per-clip provenance is written by `experiments/001-does-the-architecture-train/prepare.py` to `datasets/manifests/libritts-r-dev-clean.jsonl` (git-ignored).
+CC BY 4.0 requires attribution and a link to the license for the material and adaptations of it. A dataset derived from it cannot be relabeled CC0. It fits the "attributed track" defined in `docs/COORDINATION.md`, not the CC0 main dataset. Per-clip provenance is written by `experiments/001-architecture-trains/prepare.py` to `datasets/manifests/libritts-r-dev-clean.jsonl` (git-ignored).
 
 ## Kokoro-82M (Apache 2.0 weights)
 

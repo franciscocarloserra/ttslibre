@@ -37,8 +37,11 @@ model = TTL(c, len(tok.vocab)).to(dev)
 opt = torch.optim.AdamW(model.parameters(), lr=t["lr"])
 amp = torch.bfloat16 if t["amp"] and dev == "cuda" else torch.float32
 step = 0
-if t.get("init_from") and not resume:  # warm start from an aligned checkpoint (weights only)
-    model.load_state_dict(torch.load(P(t["init_from"]), map_location=dev)["model"])
+if t.get("init_from") and not resume:  # warm start from an aligned checkpoint (weights only); vocab may have grown
+    sd = torch.load(P(t["init_from"]), map_location=dev)["model"]; own = model.state_dict()
+    for k, v in sd.items():
+        if v.shape != own[k].shape: own[k][:v.shape[0]] = v; sd[k] = own[k]  # embedding rows for new chars stay random
+    model.load_state_dict(sd)
 if resume and os.path.exists(os.path.join(run, "ttl.pt")):
     ck = torch.load(os.path.join(run, "ttl.pt"), map_location=dev)
     model.load_state_dict(ck["model"]); opt.load_state_dict(ck["opt"]); step = ck["step"]
@@ -136,7 +139,9 @@ sampler = None
 def wer(ref, hyp):
     import re
     from num2words import num2words
-    norm = lambda x: re.sub(r"[^a-z' ]", " ", re.sub(r"\d+", lambda m: num2words(int(m.group())), x.lower())).split()
+    import unicodedata
+    strip = lambda x: "".join(ch for ch in unicodedata.normalize("NFD", x.replace("ñ", "n~")) if unicodedata.category(ch) != "Mn").replace("n~", "ñ")
+    norm = lambda x: re.sub(r"[^a-zñ' ]", " ", strip(re.sub(r"\d+", lambda m: num2words(int(m.group()), lang=t.get("lang", "en")), x.lower()))).split()
     r, h = norm(ref), norm(hyp)
     dd = list(range(len(h) + 1))
     for i in range(1, len(r) + 1):

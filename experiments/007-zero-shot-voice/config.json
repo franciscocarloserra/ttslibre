@@ -91,7 +91,7 @@
     "max_minutes": 480,
     "sample_heldout_n": 3,
     "stop_wer_window": 3,
-    "init_from": "../004-does-it-learn-words-or-sentences/runs/w16/ttl.pt",
+    "init_from": "../004-words-or-sentences/runs/w16/ttl.pt",
     "fail_after_minutes": 60,
     "fail_wer": 0.8,
     "sample_extra": [
@@ -155,7 +155,7 @@
     "runs_glob": "../*/runs/*/ttl.pt"
   },
   "refs": {
-    "model": "../006-does-it-generalize-with-40-speakers/runs/devclean/ttl.pt",
+    "model": "../006-generalize-40-speakers/runs/devclean/ttl.pt",
     "refs": {
       "1988": "../../datasets/libritts-r/prep/ref_default.wav",
       "6313": "../../datasets/libritts-r/raw/LibriTTS_R/dev-clean/6313/66129/6313_66129_000062_000001.wav",

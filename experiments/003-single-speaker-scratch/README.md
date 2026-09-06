@@ -15,8 +15,8 @@
 **Run.**
 ```bash
 ./venv/bin/python train.py --run spk1988            # add --resume to continue from runs/spk1988/ttl.pt
-../panel.py (run from experiments/: ./004-does-it-learn-words-or-sentences/venv/bin/python panel.py)  # http://localhost:7807
+../panel.py (run from experiments/: ./004-words-or-sentences/venv/bin/python panel.py)  # http://localhost:7807
 ```
-TensorBoard: see repo AGENTS.md (add `003:experiments/003-one-speaker-from-scratch-in-12min/runs` to `--logdir_spec`).
+TensorBoard: see repo AGENTS.md (add `003:experiments/003-single-speaker-scratch/runs` to `--logdir_spec`).
 
 **Result.** pending (see `RESULTS.md`)
