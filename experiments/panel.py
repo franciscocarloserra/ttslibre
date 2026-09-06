@@ -171,4 +171,4 @@ class H(BaseHTTPRequestHandler):
 
 
 print(f"http://localhost:{p['port']}", flush=True)
-ThreadingHTTPServer(("0.0.0.0", p["port"]), H).serve_forever()
+ThreadingHTTPServer((p.get("host", "127.0.0.1"), p["port"]), H).serve_forever()
