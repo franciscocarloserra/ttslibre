@@ -66,11 +66,12 @@ table{width:100%%;font-size:13px;border-collapse:collapse}td{padding:2px 4px;ver
 <h3>run</h3><select id=view onchange="load()">%s</select>
 <svg id=chart viewBox="0 0 700 220"></svg>
 <h3>generate</h3>
+voice <select id=refsel onchange="ref.value=this.value"></select>
 <input id=text value="%s" onkeydown="if(event.key=='Enter')go()">
 <button onclick="go()">generate</button>
 <div id=gen style="margin-top:.5em"></div><pre id=out></pre>
 <details><summary>advanced</summary>
-voice <select id=refsel onchange="ref.value=this.value"></select> ref clip <input id=ref value="%s" size=60>
+ref clip <input id=ref value="%s" size=60>
 steps <input id=steps value="%d"> cfg <input id=cfg value="%s"> duration scale <input id=dur value="%s"></details>
 </div><div id=rounds></div></div>
 <script>
@@ -95,7 +96,7 @@ steps.forEach((s,i)=>{const rs=d.filter(r=>r.step==s);h+=`<div style="border:1px
 for(const r of rs) h+=`<tr><td style="color:${COL[r.name]||'#aaa'};white-space:nowrap;width:9em"><b>${r.name}</b><br>wer ${r.wer.toFixed(2)}</td><td style="width:6em">${btn(`/wav?run=${encodeURIComponent(view.value)}&f=${r.name}_step_${String(s).padStart(6,'0')}.wav`)}</td><td style="color:#999">input: <span style="color:#ddd">${(S[r.name]||{}).text||''}</span><br>whisper: <span style="color:#ddd">${r.heard}</span></td></tr>`;h+='</table></div>'});
 const el=document.getElementById('rounds');if(el.dataset.h!==h){el.innerHTML=h;el.dataset.h=h;durs()}}
 load();setInterval(load,15000);
-(async()=>{const R=await (await fetch('/refs')).json();refsel.innerHTML=Object.entries(R).map(([k,v])=>`<option value="${v}"${v===ref.value?' selected':''}>${k}</option>`).join('')})();
+(async()=>{const R=await (await fetch('/refs')).json();refsel.innerHTML=Object.entries(R).map(([k,v])=>`<option value="${v}">${k}</option>`).join('');ref.value=refsel.value})();
 async function go(){const b=document.querySelector('button');b.disabled=true;out.textContent='generating...';
 const r=await fetch('/synth',{method:'POST',body:JSON.stringify({run:view.value+'/ttl.pt',text:text.value,ref:ref.value,steps:+steps.value,cfg:+cfg.value,dur:+dur.value})});
 if(!r.ok){out.textContent=await r.text();b.disabled=false;return}
