@@ -68,3 +68,6 @@ Ultraminimal. Only what the requested step needs. English everywhere. Report fac
 - Interactive testing of any checkpoint with custom text is done through the panel (`experiments/panel.py`, port 7807, lists all experiments' checkpoints, model stays loaded on GPU), not through the CLI or TensorBoard.
 - One aggressive run beats a three-command sweep. Give the user one command.
 - Reports to the user: Spanish, short, plain words, no cryptic parameter names.
+
+## Partial checkpoints (from the user)
+Every training run keeps at least 4 partial checkpoints spread over its time budget (`ttl.keep_checkpoints`, weights only, `runs/<run>/ttl_<elapsed>_step<N>.pt`), plus `best.pt` (best held-out WER) and `ttl.pt` (latest, resumable). Reason: 006 stabilized at 3 h of a 7 h run and the 3 h weights were gone; partial checkpoints let the next experiment start from any point of the curve.

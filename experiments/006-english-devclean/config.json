@@ -108,7 +108,8 @@
         "Please call the doctor before noon tomorrow."
       ]
     ],
-    "stop_wer": 0.2
+    "stop_wer": 0.2,
+    "keep_checkpoints": 4
   },
   "dp": {
     "char_dim": 64,

@@ -213,7 +213,7 @@ def sample(step):
 
 
 log = open(os.path.join(run, "progress.log"), "a")
-t0, order = time.time(), []
+t0, order, kept = time.time(), [], 0
 if resume and step: t0 -= ck.get("elapsed", 0)  # budget clock continues across restarts
 while step < steps:
     if not order:
@@ -238,6 +238,10 @@ while step < steps:
         sample(step)
     if step % t["ckpt_every"] == 0 or step == steps:
         save()
+        # partial checkpoints: ttl.keep_checkpoints snapshots spread over the time budget (weights only)
+        q = int((time.time() - t0) / (t["max_minutes"] * 60 / t["keep_checkpoints"]))
+        if q > kept and q <= t["keep_checkpoints"]:
+            kept = q; torch.save({"model": model.state_dict(), "step": step, "vocab": tok.vocab, "elapsed": time.time() - t0}, os.path.join(run, f"ttl_{hms(time.time()-t0)}_step{step}.pt"))
     stop = None
     if time.time() - t0 > t["max_minutes"] * 60: stop = f"max_minutes={t['max_minutes']}"
     W = t["stop_wer_window"]
