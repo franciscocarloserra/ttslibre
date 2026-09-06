@@ -215,6 +215,7 @@ def sample(step):
 log = open(os.path.join(run, "progress.log"), "a")
 t0, order, kept = time.time(), [], 0
 if resume and step: t0 -= ck.get("elapsed", 0)  # budget clock continues across restarts
+if step == 0: sample(0)  # baseline sample: what the untrained (or warm-started) model says
 while step < steps:
     if not order:
         order = rows[:]; random.shuffle(order)
