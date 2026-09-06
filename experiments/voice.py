@@ -1,6 +1,9 @@
 """Voicepacks: a voice is the compressed AE latent of a reference clip (checkpoint-independent, the AE is shared by all experiments).
-Usage (from experiments/):  voice.py make <clip.wav> <name> [--exp EXP]     -> voices/<name>.pt
-                            voice.py test <name> --run <ckpt.pt> [--exp EXP]  -> voices/<name>.test.json (Whisper WER on the 007 sentences)"""
+Usage (from experiments/):  voice.py make <clip.wav> <name> [--exp EXP]          -> voices/<name>.pt (latents, checkpoint-independent)
+                            voice.py style <name> --run <ckpt.pt>               -> voices/<name>.style.pt (style tensors for that checkpoint, editable)
+                            voice.py mix <a> <b> <t> <out> --run <ckpt.pt>      -> voices/<out>.style.pt = (1-t)*a + t*b (a, b: voice names, .pt or .style.pt)
+                            voice.py test <name> --run <ckpt.pt> [--exp EXP]    -> voices/<name>.test.json (Whisper WER on the 007 sentences); name may be x.style
+Requires an experiment >= 013 for style/mix (TTL.style)."""
 import json, os, re, sys, time
 HERE = os.path.dirname(os.path.abspath(__file__)); VOICES = os.path.join(HERE, "voices")
 argv = sys.argv[1:]
@@ -19,9 +22,21 @@ if argv[0] == "make":
     x, sr = sf.read(clip)
     torch.save({"zref": zref.cpu().half(), "source": clip, "seconds": round(len(x) / sr, 2), "exp": EXP}, os.path.join(VOICES, name + ".pt"))
     print(f"voices/{name}.pt  frames={zref.shape[2]}  from {clip}")
+elif argv[0] in ("style", "mix"):
+    def tensors(n):
+        p = os.path.join(VOICES, n + ".pt")
+        if n.endswith(".style"): return S.style_from_pack(p)
+        return S.style_tensors(*S.style_from_voice(p))
+    if argv[0] == "style":
+        name, st = argv[1], tensors(argv[1])
+    else:
+        a, b, t, name = argv[1], argv[2], float(argv[3]), argv[4]; A, B = tensors(a), tensors(b)
+        st = {k: (1 - t) * A[k] + t * B[k] for k in A}
+    torch.save({k: v.cpu() for k, v in st.items()} | {"checkpoint": os.path.abspath(run), "made_from": argv[1:-1] if argv[0] == "mix" else [name]}, os.path.join(VOICES, name.replace(".style", "") + ".style.pt"))
+    print(f"voices/{name.replace('.style', '')}.style.pt  style {tuple(st['style'].shape)}  dp {tuple(st['dp'].shape)}  checkpoint {run}")
 elif argv[0] == "test":
     name = argv[1]; v = json.load(open(os.path.join(HERE, "007-zero-shot-voice", "config.json")))["refs"]
-    zref, rmask = S.style_from_voice(os.path.join(VOICES, name + ".pt"))
+    zref, rmask = S.style(os.path.join(VOICES, name + ".pt"))
     import re as _re, subprocess, urllib.request
     from num2words import num2words
     e = c["eval"]; tokn = os.environ.get(e["whisper_token_env"]) or subprocess.run(["bash", "-c", "grep -o 'TTS_TOKEN:-[0-9a-f]*' ~/projects/know-how/local-tts/tts | cut -d- -f2"], capture_output=True, text=True).stdout.strip()
