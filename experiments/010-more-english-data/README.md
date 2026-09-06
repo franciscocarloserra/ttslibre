@@ -16,4 +16,4 @@
 ./venv/bin/python train.py --run clean100
 ```
 
-**Result.** pending (`RESULTS.md`)
+**Result.** no measurable WER change in 2 h; val audio loss 0.88 → 0.60 (`RESULTS.md`).
