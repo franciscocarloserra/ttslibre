@@ -106,8 +106,8 @@ const u=URL.createObjectURL(await r.blob());gen.innerHTML=btn(u);durs();pl(gen.f
 class H(BaseHTTPRequestHandler):
     def do_GET(self):
         if self.path == "/refs":  # voices: reference clips listed in 007's config
-            r = json.load(open("007-style-refs/config.json"))["refs"]["refs"]
-            body = json.dumps({k: os.path.abspath(os.path.join("007-style-refs", v)) for k, v in r.items()}).encode()
+            r = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "007-style-refs", "config.json")))["refs"]["refs"]
+            body = json.dumps({k: os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "007-style-refs", v)) for k, v in r.items()}).encode()
             self.send_response(200); self.send_header("Content-Type", "application/json"); self.end_headers(); self.wfile.write(body); return
         if self.path.startswith("/rounds?"):
             body = json.dumps(rounds(self.path.split("run=")[1].replace("%2F", "/"))).encode()
