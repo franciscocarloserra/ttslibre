@@ -1,0 +1,175 @@
+{
+  "data": {
+    "raw_dir": "../../datasets/libritts-r/raw/LibriTTS_R/dev-clean",
+    "prep_dir": "../../datasets/libritts-r/prep",
+    "sample_rate": 24000,
+    "n_fft": 1024,
+    "hop": 256,
+    "n_mels": 100,
+    "mel_fmin": 0,
+    "mel_fmax": 12000,
+    "log_clamp": 1e-05,
+    "min_seconds": 1.0,
+    "max_seconds": 12.0,
+    "val_fraction": 0.02,
+    "seed": 0,
+    "speaker": "",
+    "max_utts": 0,
+    "max_clip_seconds": 0
+  },
+  "latent": {
+    "dim": 24,
+    "compress": 6
+  },
+  "ae": {
+    "hidden": 256,
+    "intermediate": 1024,
+    "kernel": 7,
+    "enc_layers": 6,
+    "dec_layers": 6,
+    "epochs": 40,
+    "batch": 16,
+    "crop_frames": 384,
+    "lr": 0.0002,
+    "amp": true,
+    "log_every": 50
+  },
+  "ttl": {
+    "char_dim": 128,
+    "text_hidden": 128,
+    "text_intermediate": 512,
+    "text_conv_layers": 6,
+    "text_conv_dilations": [
+      1,
+      1,
+      2,
+      2,
+      4,
+      4
+    ],
+    "text_attn_layers": 4,
+    "text_attn_heads": 4,
+    "ref_hidden": 128,
+    "ref_intermediate": 512,
+    "ref_conv_layers": 6,
+    "n_style": 50,
+    "vf_hidden": 256,
+    "vf_intermediate": 1024,
+    "vf_blocks": 4,
+    "vf_dilations": [
+      1,
+      2,
+      4,
+      8
+    ],
+    "vf_plain_layers": 2,
+    "vf_last_layers": 4,
+    "vf_heads": 4,
+    "kernel": 5,
+    "time_dim": 64,
+    "sigma_min": 1e-08,
+    "p_uncond": 0.0,
+    "ref_min_seconds": 0.5,
+    "ref_max_seconds": 4.0,
+    "ref_max_fraction": 0.5,
+    "batch_expand": 8,
+    "steps": 200000,
+    "batch": 16,
+    "max_seconds": 8.0,
+    "lr": 0.0005,
+    "lr_halve_every": 60000,
+    "warmup": 500,
+    "amp": true,
+    "grad_clip": 5.0,
+    "log_every": 25,
+    "ckpt_every": 2000,
+    "val_every": 5000,
+    "sample_every": 2000,
+    "sample_text": "He was nineteen years old, short and broad backed, with a close cropped, flat head, and a wide, flat face.",
+    "sample_steps": 16,
+    "sample_cfg": 1.0,
+    "max_minutes": 480,
+    "sample_heldout_n": 3,
+    "stop_wer_window": 3,
+    "init_from": "../004-word-generalization/runs/w16/ttl.pt",
+    "fail_after_minutes": 60,
+    "fail_wer": 0.8,
+    "sample_extra": [
+      [
+        "knownwords",
+        "Pop was at the beach with Hilda and the boss all evening."
+      ],
+      [
+        "novel1",
+        "The quick brown fox jumps over the lazy dog."
+      ],
+      [
+        "novel2",
+        "Please call the doctor before noon tomorrow."
+      ]
+    ],
+    "stop_wer": 0.2
+  },
+  "dp": {
+    "char_dim": 64,
+    "intermediate": 256,
+    "conv_layers": 6,
+    "attn_layers": 2,
+    "attn_heads": 2,
+    "ref_layers": 4,
+    "n_style": 8,
+    "style_dim": 16,
+    "hidden": 128,
+    "loss_weight": 0.1
+  },
+  "synth": {
+    "steps": 16,
+    "cfg": 2.0,
+    "duration_scale": 1.0,
+    "cpu_threads": 8,
+    "ref_clip": "../../datasets/libritts-r/prep/ref_default.wav"
+  },
+  "eval": {
+    "sentences": "sentences.txt",
+    "whisper_url": "http://localhost:6969/transcribe",
+    "whisper_token_env": "WHISPER_TOKEN",
+    "tts_url": "http://localhost:6971/tts",
+    "tts_token_env": "TTS_TOKEN",
+    "kokoro_voice": "af_heart",
+    "supertonic_voice": "F5",
+    "out_dir": "runs/eval",
+    "samples_dir": "samples",
+    "n_samples": 3,
+    "ogg_quality": 3
+  },
+  "smoke": {
+    "ae_epochs": 1,
+    "ttl_steps": 10,
+    "batch": 4,
+    "max_seconds": 8.0
+  },
+  "panel": {
+    "port": 7807,
+    "device": "cuda",
+    "cpu_threads": 8,
+    "runs_glob": "../*/runs/*/ttl.pt"
+  },
+  "refs": {
+    "model": "../006-english-devclean/runs/devclean/ttl.pt",
+    "refs": {
+      "1988": "../../datasets/libritts-r/prep/ref_default.wav",
+      "6313": "../../datasets/libritts-r/raw/LibriTTS_R/dev-clean/6313/66129/6313_66129_000062_000001.wav",
+      "7976": "../../datasets/libritts-r/raw/LibriTTS_R/dev-clean/7976/110124/7976_110124_000036_000003.wav"
+    },
+    "sentences": {
+      "heldout1": "Grandmother looked interested.",
+      "heldout2": "He dropped back heavily into his chair by the fire.",
+      "novel1": "The quick brown fox jumps over the lazy dog.",
+      "novel2": "Please call the doctor before noon tomorrow."
+    },
+    "repeats": 3,
+    "steps": 16,
+    "cfg": 1.0,
+    "out": "runs/refs"
+  }
+}
