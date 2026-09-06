@@ -17,4 +17,4 @@
 ./venv/bin/python train.py --run devclean
 ```
 
-**Result.** pending (`RESULTS.md`)
+**Result.** works: unseen short sentences at WER 0–0.3 after ~3 h; long sentences still weak (`RESULTS.md`).
