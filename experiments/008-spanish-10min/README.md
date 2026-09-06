@@ -15,4 +15,4 @@
 ./venv/bin/python train.py --run sabato60
 ```
 
-**Result.** pending (`RESULTS.md`)
+**Result.** voice and Spanish sounds in minutes, no Spanish text yet; English forgotten (`RESULTS.md`).
