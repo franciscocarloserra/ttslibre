@@ -17,4 +17,4 @@ for n in 006 010 010best; do ./venv/bin/python eval_val.py $n; done
 ./venv/bin/python eval_val.py 011 runs/cont4h/ttl.pt
 ```
 
-**Result.** pending (`RESULTS.md`)
+**Result.** no gain over 010 (whole-val mean WER 0.291 vs 0.284-0.296): clean-100 saturated, expand data. See `RESULTS.md`.

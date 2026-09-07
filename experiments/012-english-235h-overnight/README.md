@@ -10,4 +10,4 @@
 
 **Run.** `./pipeline.sh` (waits for the 360 download and for 011 to stop, extracts, preps, encodes, trains, evaluates). Log: `runs/pipeline.log`.
 
-**Result.** pending (`RESULTS.md`)
+**Result.** whole-val mean WER 0.291 -> 0.232 (best checkpoint, 6h21m) / 0.254 final; data expansion works after an initial regression. See `RESULTS.md`.
