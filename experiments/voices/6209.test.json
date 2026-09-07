@@ -1,44 +1,44 @@
 {
  "voice": "6209",
- "checkpoint": "/home/usuario/projects/ttslibre/experiments/011-continue-4h-low-lr/runs/cont4h/ttl.pt",
+ "checkpoint": "/home/usuario/projects/ttslibre/experiments/012-english-235h-overnight/runs/overnight/ttl.pt",
  "sentences": {
   "heldout1": {
    "text": "Grandmother looked interested.",
    "wer": [
-    0.0,
+    0.67,
     1.0,
-    0.67
+    1.0
    ],
-   "mean": 0.556
+   "mean": 0.889
   },
   "heldout2": {
    "text": "He dropped back heavily into his chair by the fire.",
    "wer": [
-    0.4,
-    0.2,
+    0.0,
+    0.0,
     0.1
    ],
-   "mean": 0.233
+   "mean": 0.033
   },
   "novel1": {
    "text": "The quick brown fox jumps over the lazy dog.",
    "wer": [
-    0.0,
+    0.11,
     0.22,
-    0.33
+    0.0
    ],
-   "mean": 0.185
+   "mean": 0.111
   },
   "novel2": {
    "text": "Please call the doctor before noon tomorrow.",
    "wer": [
     0.0,
-    0.14,
-    0.0
+    0.29,
+    0.29
    ],
-   "mean": 0.048
+   "mean": 0.19
   }
  },
- "gen_seconds_mean": 0.295,
- "mean_wer": 0.256
+ "gen_seconds_mean": 0.259,
+ "mean_wer": 0.306
 }
