@@ -61,6 +61,7 @@ HTML = """<!doctype html><meta charset=utf-8><title>ttslibre panel</title>
 .cols{display:grid;grid-template-columns:1fr 1fr;gap:2em}
 input,select,textarea,button{background:#222;color:#ddd;border:1px solid #444;border-radius:4px;padding:.5em;font:inherit;width:100%%;box-sizing:border-box;margin:.3em 0}
 button{background:#2a6;color:#000;cursor:pointer}button.play{width:5.5em;padding:.2em .4em;margin:0;background:#333;color:#ddd}details{margin:.5em 0;color:#999}pre{color:#8c8;white-space:pre-wrap}
+.bw{color:#f66;text-decoration:underline}.dl{color:#f66;text-decoration:line-through}.bc{background:#a22;color:#fff;border-radius:2px}.dim{color:#777}
 table{width:100%%;font-size:13px;border-collapse:collapse}td{padding:2px 4px;vertical-align:middle}svg{background:#181818;border-radius:4px;display:block;width:100%%}</style>
 <div class=cols><div>
 <h3>run</h3><select id=view onchange="load()">%s</select>
@@ -69,7 +70,10 @@ table{width:100%%;font-size:13px;border-collapse:collapse}td{padding:2px 4px;ver
 voice <select id=refsel onchange="ref.value=this.value"></select>
 <input id=text value="%s" onkeydown="if(event.key=='Enter')go()">
 <button onclick="go()">generate</button>
-<div id=gen style="margin-top:.5em"></div><pre id=out></pre>
+<div id=gen style="margin-top:.5em"></div>
+<canvas id=wv width=1200 height=76 style="width:100%%;height:76px;background:#07080a;border-radius:4px;display:block;margin-top:.4em"></canvas>
+<canvas id=sg width=1200 height=128 style="width:100%%;height:150px;background:#07080a;border-radius:4px;display:block;margin-top:.3em;image-rendering:pixelated"></canvas>
+<div id=words style="margin:.4em 0;line-height:1.8"></div><pre id=out></pre>
 <details><summary>advanced</summary>
 ref clip <input id=ref value="%s" size=60>
 steps <input id=steps value="%d"> cfg <input id=cfg value="%s"> duration scale <input id=dur value="%s"></details>
@@ -101,6 +105,20 @@ for(const r of rs) h+=`<tr><td style="color:${COL[r.name]||'#aaa'};white-space:n
 const el=document.getElementById('rounds');if(el.dataset.h!==h){el.innerHTML=h;el.dataset.h=h;durs()}}
 load();setInterval(load,15000);
 (async()=>{const R=await (await fetch('/refs')).json();refsel.innerHTML=Object.entries(R).map(([k,v])=>`<option value="${v}">${k}</option>`).join('');ref.value=refsel.value})();
+let VZ=null;
+function drawWave(v,bad){const c=wv.getContext('2d'),W=wv.width,H=wv.height;c.fillStyle='#07080a';c.fillRect(0,0,W,H);
+for(const [s,e] of bad||[]){c.fillStyle='rgba(255,60,60,.28)';c.fillRect(W*s/v.duration,0,Math.max(2,W*(e-s)/v.duration),H)}
+c.fillStyle='#7cf2b0';const n=v.wave.length;for(let i=0;i<n;i++){const [lo,hi]=v.wave[i];c.fillRect(i*W/n,H/2-hi*H/2,Math.max(1,W/n),Math.max(1,(hi-lo)*H/2))}}
+function drawSpec(v){const s=Uint8Array.from(v.spec.match(/../g).map(h=>parseInt(h,16)));const [F,M]=v.shape;sg.width=F;sg.height=M;const g=sg.getContext('2d'),im=g.createImageData(F,M);
+for(let f=0;f<F;f++)for(let m=0;m<M;m++){const x=s[f*M+m]/255,o=4*((M-1-m)*F+f);im.data[o]=255*Math.min(1,x*1.6);im.data[o+1]=255*Math.pow(x,1.5);im.data[o+2]=90+165*Math.max(0,1-x*2.2)*(x>0.05?1:0.3);im.data[o+3]=255}g.putImageData(im,0,0)}
+async function showViz(blob){VZ=await (await fetch('/viz',{method:'POST',body:blob})).json();drawWave(VZ);drawSpec(VZ)}
+function showWords(w){const esc=t=>t.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const ref=w.ref.map(r=>`<span class="${r.op=='eq'?'':r.op=='del'?'dl':'bw'}">${esc(r.w)}</span>`).join(' ');
+const hyp=w.hyp.map(h=>h.op=='eq'?esc(h.w):[...h.w].map((ch,i)=>h.bad[i]?`<span class=bc>${esc(ch)}</span>`:esc(ch)).join('')).join(' ');
+words.innerHTML=`<div><span class=dim>expected:</span> ${ref}</div><div><span class=dim>heard:</span> ${hyp}${w.has_ts?'':' <span class=dim>(no timestamps: restart whisper server)</span>'}</div>`;
+if(VZ&&w.has_ts){const bad=w.hyp.filter(h=>h.op!='eq'&&h.start!=null).map(h=>[h.start,h.end]);
+// deletions: mark the gap after the previous aligned hyp word
+const hs=w.hyp.filter(h=>h.start!=null);w.ref.forEach((r,i)=>{if(r.op!='del')return;const prev=hs[Math.min(i,hs.length)-1];if(prev)bad.push([prev.end,prev.end+0.15])});drawWave(VZ,bad)}}
 async function one(run,slot){const r=await fetch('/synth',{method:'POST',body:JSON.stringify({run:run+'/ttl.pt',text:text.value,ref:ref.value,steps:+steps.value,cfg:+cfg.value,dur:+dur.value})});
 if(!r.ok){slot.innerHTML='<pre>'+await r.text()+'</pre>';return}const blob=await r.blob();slot.innerHTML=btn(URL.createObjectURL(blob))+' <pre style="display:inline">'+decodeURIComponent(r.headers.get('x-info'))+'</pre>';durs();
 const w=await (await fetch('/wer',{method:'POST',headers:{'X-Text':encodeURIComponent(text.value)},body:blob})).json();slot.innerHTML+=`<pre>${w.error?'wer failed '+w.error:`wer ${w.wer.toFixed(2)} · whisper: ${w.heard}`}</pre>`}
@@ -109,8 +127,8 @@ await one(ma.value,ca);await one(mb.value,cb);cmpb.disabled=false}
 async function go(){const b=document.querySelector('button');b.disabled=true;out.textContent='generating...';
 const r=await fetch('/synth',{method:'POST',body:JSON.stringify({run:view.value+'/ttl.pt',text:text.value,ref:ref.value,steps:+steps.value,cfg:+cfg.value,dur:+dur.value})});
 if(!r.ok){out.textContent=await r.text();b.disabled=false;return}
-const blob=await r.blob();const u=URL.createObjectURL(blob);gen.innerHTML=btn(u);durs();pl(gen.firstChild);out.textContent=decodeURIComponent(r.headers.get('x-info'))+'\\nwer: checking...';b.disabled=false;
-const w=await (await fetch('/wer',{method:'POST',headers:{'X-Text':encodeURIComponent(text.value)},body:blob})).json();out.textContent=out.textContent.replace('wer: checking...',w.error?'wer: failed '+w.error:`wer ${w.wer.toFixed(2)}\\nwhisper: ${w.heard}`)}
+const blob=await r.blob();const u=URL.createObjectURL(blob);gen.innerHTML=btn(u);durs();pl(gen.firstChild);out.textContent=decodeURIComponent(r.headers.get('x-info'))+'\\nwer: checking...';b.disabled=false;words.innerHTML='';showViz(blob);
+const w=await (await fetch('/wer',{method:'POST',headers:{'X-Text':encodeURIComponent(text.value)},body:blob})).json();out.textContent=out.textContent.replace('wer: checking...',w.error?'wer: failed '+w.error:`wer ${w.wer.toFixed(2)}\\nwhisper: ${w.heard}`);if(!w.error)showWords(w)}
 </script>"""
 
 
@@ -130,8 +148,76 @@ def wer(ref, hyp):
     return dd[len(b)] / max(len(a), 1)
 
 
-def whisper(data):
-    req = urllib.request.Request(_e["whisper_url"], data=data, headers={"Authorization": f"Bearer {_tok}"})
+import numpy as np, difflib
+
+
+def mel_db(w, sr, sp):
+    """numpy mel spectrogram in dB relative to the clip max, frames x mels (same as supertonic-voicelab panel)."""
+    n, h = sp["n_fft"], sp["hop"]; win = np.hanning(n).astype(np.float32); pad = np.pad(w, n // 2)
+    frames = np.lib.stride_tricks.sliding_window_view(pad, n)[::h] * win; S = np.abs(np.fft.rfft(frames, axis=1)) ** 2
+    mel = lambda f: 2595 * np.log10(1 + f / 700); imel = lambda m: 700 * (10 ** (m / 2595) - 1)
+    pts = imel(np.linspace(mel(0), mel(sp["fmax_hz"]), sp["n_mels"] + 2)); freqs = np.fft.rfftfreq(n, 1 / sr)
+    lo, cc, hi = pts[:-2, None], pts[1:-1, None], pts[2:, None]
+    fb = np.maximum(0, np.minimum((freqs - lo) / (cc - lo), (hi - freqs) / (hi - cc))).astype(np.float32)
+    m = 10 * np.log10(np.maximum(S @ fb.T, 1e-10)); return m - m.max()
+
+
+def viz(data):
+    """wav bytes -> {duration, wave: [[lo,hi]...] per pixel column (-1..1), spec: hex uint8 frames x mels}."""
+    sp = p["viz"]; w, sr = sf.read(io.BytesIO(data), dtype="float32")
+    if w.ndim > 1: w = w.mean(1)
+    n = sp["wave_px"]; cols = np.array_split(w, n) if len(w) >= n else [w]
+    wave = [[round(float(x.min()), 3), round(float(x.max()), 3)] for x in cols]
+    m = mel_db(w, sr, sp); u8 = np.clip((m + 80) / 80 * 255, 0, 255).astype(np.uint8)  # 80 dB range
+    return {"duration": len(w) / sr, "wave": wave, "spec": u8.tobytes().hex(), "shape": list(u8.shape)}
+
+
+def align(ref, hyp):
+    """Levenshtein backtrace on normalized tokens -> list of (op, i, j): op in eq/sub/del/ins; i idx into ref, j into hyp."""
+    a, b = _norm(ref), _norm(hyp); D = [[0] * (len(b) + 1) for _ in range(len(a) + 1)]
+    for i in range(len(a) + 1): D[i][0] = i
+    for j in range(len(b) + 1): D[0][j] = j
+    for i in range(1, len(a) + 1):
+        for j in range(1, len(b) + 1): D[i][j] = min(D[i - 1][j] + 1, D[i][j - 1] + 1, D[i - 1][j - 1] + (a[i - 1] != b[j - 1]))
+    ops, i, j = [], len(a), len(b)
+    while i or j:
+        if i and j and D[i][j] == D[i - 1][j - 1] + (a[i - 1] != b[j - 1]): ops.append(("eq" if a[i - 1] == b[j - 1] else "sub", i - 1, j - 1)); i -= 1; j -= 1
+        elif i and D[i][j] == D[i - 1][j] + 1: ops.append(("del", i - 1, None)); i -= 1
+        else: ops.append(("ins", None, j - 1)); j -= 1
+    return a, b, ops[::-1]
+
+
+def diff_chars(x, y):
+    """chars of y that differ from x (substituted word pair) -> list of bools per char of y."""
+    bad = [True] * len(y)
+    for tag, i1, i2, j1, j2 in difflib.SequenceMatcher(None, x, y).get_opcodes():
+        if tag == "equal":
+            for k in range(j1, j2): bad[k] = False
+    return bad
+
+
+def wer_report(text, data):
+    """{wer, heard, has_ts, ref:[{w,op}], hyp:[{w,op,start,end,bad:[bool per char]}]} using ?words=1 when the whisper server supports it."""
+    try:
+        raw = whisper(data, words=True); j = json.loads(raw); heard, words = j["text"], j["words"]; has_ts = True
+    except Exception:
+        heard, words, has_ts = whisper(data), [], False
+    a, b, ops = align(text, heard)
+    # map normalized hyp tokens back onto timestamped words (both derive from the same string, in order)
+    tw = [t for w in words for t in _norm(w["w"]) for _ in [0]]  # normalized tokens in word order
+    spans = [(w["start"], w["end"]) for w in words for _ in _norm(w["w"])]
+    ref = [{"w": t, "op": "eq"} for t in a]; hyp = [{"w": t, "op": "eq", "bad": [False] * len(t)} for t in b]
+    if has_ts and len(spans) == len(b):
+        for k, sp in enumerate(spans): hyp[k]["start"], hyp[k]["end"] = sp
+    for op, i, jj in ops:
+        if op == "sub": ref[i]["op"] = "sub"; hyp[jj]["op"] = "sub"; hyp[jj]["bad"] = diff_chars(a[i], b[jj])
+        elif op == "del": ref[i]["op"] = "del"
+        elif op == "ins": hyp[jj]["op"] = "ins"; hyp[jj]["bad"] = [True] * len(b[jj])
+    return {"wer": round(wer(text, heard), 2), "heard": heard, "has_ts": has_ts, "ref": ref, "hyp": hyp}
+
+
+def whisper(data, words=False):
+    req = urllib.request.Request(_e["whisper_url"] + (p["viz"]["whisper_words_query"] if words else ""), data=data, headers={"Authorization": f"Bearer {_tok}"})
     return urllib.request.urlopen(req, timeout=120).read().decode()
 
 
@@ -163,10 +249,13 @@ class H(BaseHTTPRequestHandler):
         if self.path == "/wer":  # body = wav bytes, X-Text = expected sentence -> {wer, heard}
             data = self.rfile.read(int(self.headers["Content-Length"])); text = urllib.parse.unquote(self.headers["X-Text"])
             try:
-                heard = whisper(data); body = json.dumps({"wer": round(wer(text, heard), 2), "heard": heard})
+                body = json.dumps(wer_report(text, data))
             except Exception as ex:
                 body = json.dumps({"error": str(ex)})
             self.send_response(200); self.send_header("Content-Type", "application/json"); self.end_headers(); self.wfile.write(body.encode()); return
+        if self.path == "/viz":  # body = wav bytes -> waveform min/max columns + mel spectrogram
+            body = json.dumps(viz(self.rfile.read(int(self.headers["Content-Length"])))).encode()
+            self.send_response(200); self.send_header("Content-Type", "application/json"); self.end_headers(); self.wfile.write(body); return
         q = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
         try:
             S = get_synth(q["run"])
