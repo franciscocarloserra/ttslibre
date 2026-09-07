@@ -4,6 +4,8 @@
 
 A text-to-speech model under 100M parameters that answers instantly on a laptop CPU, sounds at least as good as Supertonic 3 and more expressive, and ships with everything needed to reproduce it.
 
+**Current checkpoint: v0.1.2** (English PoC, 19.8M params, 177 h LibriTTS-R, whole-val Whisper WER 0.23): [FranciscoCarlosErra/ttslibre-poc-en](https://huggingface.co/FranciscoCarlosErra/ttslibre-poc-en) — cold-start and in-memory inference instructions in the model card. Rough, as promised in the plan.
+
 ## The deal, in one table
 
 | | Kokoro-82M | Supertonic 3 | **TTSLibre** |
@@ -64,7 +66,7 @@ State of the art. Voice cloning from seconds of audio. Emotion control. Anything
 
 1. **Data.** Licensing rules, pipeline, first 100 clean hours of English.
 2. **Bake-off.** Two or three candidate architectures on those 100 hours. One metric. Results public. Winner sets the architecture.
-3. **First checkpoint.** Full English run. It will be rough. Ship it anyway.
+3. **First checkpoint.** Full English run. It will be rough. Ship it anyway. → v0.1.2 shipped (experiment 012).
 4. **Voice tool.** Style-vector editor on top of the checkpoint.
 5. **Languages.** Spanish first, then whatever contributors bring.
 
