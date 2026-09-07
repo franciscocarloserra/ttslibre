@@ -4,6 +4,12 @@
 
 A text-to-speech model under 100M parameters that answers instantly on a laptop CPU, sounds at least as good as Supertonic 3 and more expressive, and ships with everything needed to reproduce it.
 
+
+
+https://github.com/user-attachments/assets/5b9e8570-dd0d-45d7-b831-092cc7d8bfed
+
+
+
 **Current checkpoint: v0.1.2** (English PoC, 19.8M params, 177 h LibriTTS-R, whole-val Whisper WER 0.23): [FranciscoCarlosErra/ttslibre-poc-en](https://huggingface.co/FranciscoCarlosErra/ttslibre-poc-en) — cold-start and in-memory inference instructions in the model card. Rough, as promised in the plan.
 
 ## The deal, in one table
