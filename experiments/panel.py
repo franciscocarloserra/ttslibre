@@ -28,7 +28,7 @@ def sentences(run_dir):
     out = {}
     for n, text in names:
         orig = [r for r in train + val if r["text"] == text]
-        out[n] = {"text": text, "label": LABEL.get(n, n), "original": os.path.join(P(d["raw_dir"]), orig[0]["path"]) if orig else None}
+        out[n] = {"text": text, "label": LABEL.get(n, n), "original": os.path.join(P(d.get("raw_dir") or d["raw_root"]), orig[0]["path"]) if orig else None}
     return out
 
 
@@ -73,6 +73,10 @@ voice <select id=refsel onchange="ref.value=this.value"></select>
 <details><summary>advanced</summary>
 ref clip <input id=ref value="%s" size=60>
 steps <input id=steps value="%d"> cfg <input id=cfg value="%s"> duration scale <input id=dur value="%s"></details>
+<details><summary>compare two models</summary>
+A <select id=ma>%s</select> B <select id=mb>%s</select>
+<button id=cmpb onclick="cmp()">generate with both</button>
+<div id=cmpout></div></details>
 </div><div id=rounds></div></div>
 <script>
 let cur=null;const AU=new Audio();AU.onended=()=>{if(cur){cur.textContent='▶ '+cur.dataset.d;cur=null}};
@@ -97,6 +101,11 @@ for(const r of rs) h+=`<tr><td style="color:${COL[r.name]||'#aaa'};white-space:n
 const el=document.getElementById('rounds');if(el.dataset.h!==h){el.innerHTML=h;el.dataset.h=h;durs()}}
 load();setInterval(load,15000);
 (async()=>{const R=await (await fetch('/refs')).json();refsel.innerHTML=Object.entries(R).map(([k,v])=>`<option value="${v}">${k}</option>`).join('');ref.value=refsel.value})();
+async function one(run,slot){const r=await fetch('/synth',{method:'POST',body:JSON.stringify({run:run+'/ttl.pt',text:text.value,ref:ref.value,steps:+steps.value,cfg:+cfg.value,dur:+dur.value})});
+if(!r.ok){slot.innerHTML='<pre>'+await r.text()+'</pre>';return}const blob=await r.blob();slot.innerHTML=btn(URL.createObjectURL(blob))+' <pre style="display:inline">'+decodeURIComponent(r.headers.get('x-info'))+'</pre>';durs();
+const w=await (await fetch('/wer',{method:'POST',headers:{'X-Text':encodeURIComponent(text.value)},body:blob})).json();slot.innerHTML+=`<pre>${w.error?'wer failed '+w.error:`wer ${w.wer.toFixed(2)} · whisper: ${w.heard}`}</pre>`}
+async function cmp(){cmpb.disabled=true;cmpout.innerHTML=`<div><b>A</b> ${ma.options[ma.selectedIndex].text}<div id=ca>generating...</div></div><div><b>B</b> ${mb.options[mb.selectedIndex].text}<div id=cb>generating...</div></div>`;
+await one(ma.value,ca);await one(mb.value,cb);cmpb.disabled=false}
 async function go(){const b=document.querySelector('button');b.disabled=true;out.textContent='generating...';
 const r=await fetch('/synth',{method:'POST',body:JSON.stringify({run:view.value+'/ttl.pt',text:text.value,ref:ref.value,steps:+steps.value,cfg:+cfg.value,dur:+dur.value})});
 if(!r.ok){out.textContent=await r.text();b.disabled=false;return}
@@ -147,7 +156,7 @@ class H(BaseHTTPRequestHandler):
         views = "".join(f"<option value='{os.path.dirname(r)}'>{os.path.relpath(r, P('..')).rsplit('/', 1)[0]}</option>" for r in runs)
         opts = "".join(f"<option value='{r}'>{os.path.relpath(r, P('..'))} ({time.strftime('%H:%M', time.localtime(os.path.getmtime(r)))})</option>" for r in runs)
         s = c["synth"]
-        body = (HTML % (views, c["ttl"]["sample_text"], P(s["ref_clip"]), s["steps"], s["cfg"], s["duration_scale"])).encode()
+        body = (HTML % (views, c["ttl"]["sample_text"], P(s["ref_clip"]), s["steps"], s["cfg"], s["duration_scale"], views, views)).encode()
         self.send_response(200); self.send_header("Content-Type", "text/html; charset=utf-8"); self.end_headers(); self.wfile.write(body)
 
     def do_POST(self):
