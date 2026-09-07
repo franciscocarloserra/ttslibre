@@ -179,7 +179,8 @@
    "fmax_hz": 8000,
    "wave_px": 1200,
    "whisper_words_query": "?words=1"
-  }
+  },
+  "hot_seconds": 120
  },
  "overnight": {
   "end_hour": 4,

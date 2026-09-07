@@ -46,19 +46,32 @@ def rounds(run_dir):
                 break
     return {"rounds": out, "sentences": sentences(run_dir)}
 torch.set_num_threads(p["cpu_threads"])
-cache = {}  # ckpt path -> (mtime, Synth)
+import threading
+cache = {}  # ckpt path -> [mtime, Synth, last_used]
+_lock = threading.Lock()
 
 
 def get_synth(run):
     mt = os.path.getmtime(run)
-    if run not in cache or cache[run][0] != mt:  # reload when the training run overwrote the checkpoint
-        cache[run] = (mt, Synth(c, run=run, device=p["device"]))
-    return cache[run][1]
+    with _lock:
+        if run not in cache or cache[run][0] != mt:  # reload when the training run overwrote the checkpoint
+            cache[run] = [mt, Synth(c, run=run, device=p["device"]), 0]
+        cache[run][2] = time.time()
+        return cache[run][1]
+
+
+def _evict():  # free VRAM: drop models idle for more than panel.hot_seconds (GPU is shared with training)
+    while True:
+        time.sleep(10)
+        with _lock:
+            for k in [k for k, v in cache.items() if time.time() - v[2] > p["hot_seconds"]]: del cache[k]
+        torch.cuda.empty_cache() if torch.cuda.is_available() else None
+threading.Thread(target=_evict, daemon=True).start()
 
 
 HTML = """<!doctype html><meta charset=utf-8><title>ttslibre panel</title>
 <style>body{background:#111;color:#ddd;font:15px system-ui;margin:0;padding:1em}
-.cols{display:grid;grid-template-columns:1fr 1fr;gap:2em}
+html,body{width:100%%}.cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:2em;width:100%%}
 input,select,textarea,button{background:#222;color:#ddd;border:1px solid #444;border-radius:4px;padding:.5em;font:inherit;width:100%%;box-sizing:border-box;margin:.3em 0}
 button{background:#2a6;color:#000;cursor:pointer}button.play{width:5.5em;padding:.2em .4em;margin:0;background:#333;color:#ddd}details{margin:.5em 0;color:#999}pre{color:#8c8;white-space:pre-wrap}
 .bw{color:#f66;text-decoration:underline}.dl{color:#f66;text-decoration:line-through}.bc{background:#a22;color:#fff;border-radius:2px}.dim{color:#777}
@@ -68,7 +81,7 @@ table{width:100%%;font-size:13px;border-collapse:collapse}td{padding:2px 4px;ver
 <svg id=chart viewBox="0 0 700 220"></svg>
 <h3>generate</h3>
 voice <select id=refsel onchange="ref.value=this.value"></select>
-<input id=text value="%s" onkeydown="if(event.key=='Enter')go()">
+<textarea id=text rows=3 onkeydown="if(event.key=='Enter'&&!event.shiftKey){event.preventDefault();go()}">%s</textarea>
 <button onclick="go()">generate</button>
 <div id=gen style="margin-top:.5em"></div>
 <canvas id=wv width=1200 height=76 style="width:100%%;height:76px;background:#07080a;border-radius:4px;display:block;margin-top:.4em"></canvas>
