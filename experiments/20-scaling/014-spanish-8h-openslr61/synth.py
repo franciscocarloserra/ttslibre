@@ -1,8 +1,11 @@
 """Synthesize: text + reference wav -> wav. Euler flow-matching sampler with CFG, latent AE decode, Vocos.
 Usage: synth.py "text" out.wav [--ref ref.wav | --ref voices/name.pt | --ref voices/name.style.pt] [--cpu] [--run runs/ttl]"""
-import json, os, sys, time
+import json, os, re, sys, time
 import torch, soundfile as sf
 from common import load_config, TTL, LatentAE, Tokenizer, Mel, compress, decompress, lengths_to_mask, P
+
+EN = set("the and of to a in is it that for on with as at by this from or but not are be was were have has had will would can could should i you he she they we me my your our their if when what which who how why do does did done been being also there here just now only more most other some any all each every no yes very over under between about into than then so while because before after".split())
+ES = set("el la los las de y que en un una uno es son por con para del al lo mi tu su sus este esta estos estas eso esto ese esa pero si no muy o como más ya hay ser estar tiene tengo tienes tenemos está están fue fueron era eran haber hacer cuando donde quien cual porque aunque entonces también sobre entre ante sin hasta desde hacia mientras despues antes asi solo todo toda todos todas cada otro otra nada nadie alguien algun alguna bien mal mejor peor me te se nos le les yo vos vosotros nosotros ellos ellas usted ustedes".split())
 
 
 class Synth:
@@ -58,10 +61,18 @@ class Synth:
         if ref.endswith(".style.pt"): return self.style_from_pack(ref), None
         return self.style_from_voice(ref) if ref.endswith(".pt") else self.style_from_wav(ref)
 
+    def detect(self, text):
+        """es/en from text (same rule as know-how/local-tts tts_server.detect_lang): Spanish chars, apostrophe, stopword counts; "" if undecided."""
+        t = text.lower()
+        if re.search(r"[ñáéíóúü¿¡]", t): return "es"
+        if "'" in t or "\u2019" in t: return "en"
+        w = re.findall(r"[a-z]+", t); en = sum(x in EN for x in w); es = sum(x in ES for x in w)
+        return "" if en == es else ("en" if en > es else "es")
+
     @torch.no_grad()
     def tag(self, text, lang=None):
-        """Wrap text in <lang>...</lang> when the checkpoint vocab has language tags (016+) and the text is not tagged yet; lang defaults to synth.lang."""
-        lang = lang or getattr(self, "lang", "") or self.c["synth"].get("lang", "")
+        """Wrap text in <lang>...</lang> when the checkpoint vocab has language tags (016+) and the text is not tagged yet; lang: given, else detected, else synth.lang."""
+        lang = lang or self.detect(text) or getattr(self, "lang", "") or self.c["synth"].get("lang", "")
         return f"<{lang}>{text}</{lang}>" if lang and f"<{lang}>" in self.tok.idx and not text.lstrip().startswith("<") else text
 
     def __call__(self, text, zref, rmask, steps=None, cfg=None, duration_scale=None, lang=None):
