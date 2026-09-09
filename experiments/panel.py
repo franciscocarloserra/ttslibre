@@ -15,6 +15,13 @@ c = load_config(); p = c["panel"]
 LOG_RE = [re.compile(r"SAMPLE (\w+) step=(\d+) wer=([\d.]+) \| (.*)"), re.compile(r"(\S+) \((\d+)\)  (\w+) wer ([\d.]+)  whisper heard: (.*)"),
           re.compile(r"SAMPLE step=(\d+) wer=([\d.]+) \| (.*)")]
 LABEL = {"train": "training sentence (should be memorized)", "knownwords": "known words, new order", "heldout1": "never-seen words", "heldout2": "never-seen words"}
+def label(n):
+    """What each probe measures: train = a sentence from the training set; novel_* = hand-written sentence never in the data;
+    heldout_* = sentence of a training speaker held out of training (val split); suffix es/en = language."""
+    if n in LABEL: return LABEL[n]
+    if n.startswith("novel"): return "hand-written sentence, never in the data (generalization)"
+    if n.startswith("heldout"): return "held-out sentence of a training speaker, not trained on (val split)"
+    return n
 
 
 def _P(rel):
@@ -35,7 +42,7 @@ def sentences(run_dir):
     out = {}
     for n, text in names:
         orig = [r for r in train + val if r["text"] == text]
-        out[n] = {"text": text, "label": LABEL.get(n, n), "original": os.path.join(_P(d.get("raw_dir") or d["raw_root"]), orig[0]["path"]) if orig else None}
+        out[n] = {"text": text, "label": label(n), "original": os.path.join(_P(d.get("raw_dir") or d["raw_root"]), orig[0]["path"]) if orig else None}
     return out
 
 
@@ -121,9 +128,9 @@ const EL={};for(const r of d)if(r.elapsed)EL[r.step]=r.elapsed;const ks=Object.k
 for(let i=1;i<=5;i++){const s=Math.round(mx*i/5);const k=ks.length?ks.reduce((p,q)=>Math.abs(q-s)<Math.abs(p-s)?q:p):s;c.append(el('line',{x1:X(s),x2:X(s),y1:H-B,y2:H-B+4,stroke:'#666'}));const t=el('text',{x:X(s),y:H-6,fill:'#888','font-size':11,'text-anchor':'end'});const hrs=e=>{const m=/(\d+)h(\d+)m|(\d+)m(\d+)s/.exec(e||'');return m?(m[1]?+m[1]+m[2]/60:m[3]/60).toFixed(1)+' h':''};t.textContent=ks.length?hrs(EL[k]):'step '+s;c.append(t)}
 const steps=[...new Set(d.map(r=>r.step))].sort((a,b)=>b-a);const N=steps.length;let h='<h3>rounds, newest first</h3>';
 const legend=Object.entries(S).map(([n,x])=>`<div style="color:${COL[n]||'#aaa'}"><b>${n}</b> = ${x.label}: <i>${x.text}</i>${x.original?` ${btn(`/wav?run=x&f=x&orig=${encodeURIComponent(x.original)}`)} (original recording)`:''}</div>`).join('');
-h+='<details open><summary>the sentences</summary>'+legend+'</details>';
 steps.forEach((s,i)=>{const rs=d.filter(r=>r.step==s);h+=`<div style="border:1px solid #333;border-radius:6px;padding:.5em;margin:.6em 0"><div style="color:#aaa;margin-bottom:.3em">round ${N-i} of ${N} &middot; step ${s}${rs[0].elapsed?' &middot; '+rs[0].elapsed+' into the run':''}</div><table>`;
 for(const r of rs) h+=`<tr><td style="color:${COL[r.name]||'#aaa'};white-space:nowrap;width:9em"><b>${r.name}</b><br>wer ${r.wer.toFixed(2)}</td><td style="width:6em">${btn(`/wav?run=${encodeURIComponent(view.value)}&f=${r.name}_step_${String(s).padStart(6,'0')}.wav`)}</td><td style="color:#999">input: <span style="color:#ddd">${(S[r.name]||{}).text||''}</span><br>whisper: <span style="color:#ddd">${r.heard}</span></td></tr>`;h+='</table></div>'});
+h+='<details><summary>what the probe names mean</summary>'+legend+'</details>';
 const rd=document.getElementById('rounds');if(rd.dataset.h!==h){rd.innerHTML=h;rd.dataset.h=h;durs()}}
 async function ckpts(){const L=await (await fetch('/ckpts?run='+encodeURIComponent(view.value))).json();const cur=ckpt.value;ckpt.innerHTML=L.map(x=>`<option value='${x.path}'>${x.name} (${x.time})</option>`).join('');if([...ckpt.options].some(o=>o.value===cur))ckpt.value=cur}
 let OVN=%d;async function ov(){const R=await (await fetch('/overview')).json();const rows=R.slice(0,OVN);let h='';
