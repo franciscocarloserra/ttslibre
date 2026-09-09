@@ -1,6 +1,6 @@
 """Mixed Spanish+English prep from two existing preps (same AE, same latent stats; the Spanish vocab is the English vocab plus 13 chars, ids unchanged).
 Per language: fewest speakers (most hours first) whose hours reach data.hours_per_lang. Latents/mels are symlinked, nothing is re-encoded.
-train.jsonl and val.jsonl interleave the two languages (es, en, es, en, ...) so any prefix is balanced; rows carry "lang" and an absolute "path"."""
+train.jsonl and val.jsonl interleave the two languages (es, en, es, en, ...) so any prefix is balanced; rows carry "lang" and an absolute "path"; text is wrapped in language tags <es>...</es> / <en>...</en> (Supertonic style) and the tags are appended to the vocab."""
 import json, os, random, shutil, collections
 from common import load_config, P
 
@@ -17,7 +17,7 @@ for lang, src in d["sources"].items():
         spk.append(s); acc += h
     sel = [r for r in rows if r["speaker"] in spk]
     for r in sel:
-        r["lang"] = lang; r["path"] = os.path.abspath(os.path.join(P(src["raw_root"]), r["path"]))
+        r["lang"] = lang; r["text"] = f"<{lang}>{r['text']}</{lang}>"; r["path"] = os.path.abspath(os.path.join(P(src["raw_root"]), r["path"]))
         for sub in ("latents", "mels"):
             dst = os.path.join(out, sub, r["id"] + ".pt")
             if not os.path.lexists(dst): os.symlink(os.path.abspath(os.path.join(prep, sub, r["id"] + ".pt")), dst)
@@ -35,5 +35,5 @@ with open(os.path.join(out, "val.jsonl"), "w") as f:
     for r in mixed[:nv]: f.write(json.dumps(r) + "\n")
 with open(os.path.join(out, "train.jsonl"), "w") as f:
     for r in mixed[nv:]: f.write(json.dumps(r) + "\n")
-shutil.copy(P(d["vocab_from"]), os.path.join(out, "vocab.json")); shutil.copy(P(d["latent_stats"]), os.path.join(out, "latent_stats.pt"))
+json.dump(json.load(open(P(d["vocab_from"]))) + [f"<{l}>" for l in d["sources"]] + [f"</{l}>" for l in d["sources"]], open(os.path.join(out, "vocab.json"), "w")); shutil.copy(P(d["latent_stats"]), os.path.join(out, "latent_stats.pt"))
 print(f"train={len(mixed)-nv} val={nv} hours={sum(r['seconds'] for r in mixed)/3600:.2f} per lang " + ", ".join(f"{l} {sum(r['seconds'] for r in v)/3600:.2f} h {len(v)} clips" for l, v in picked.items()))

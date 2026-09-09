@@ -147,7 +147,7 @@ def wer(ref, hyp):
     from num2words import num2words
     import unicodedata
     strip = lambda x: "".join(ch for ch in unicodedata.normalize("NFD", x.replace("ñ", "n~")) if unicodedata.category(ch) != "Mn").replace("n~", "ñ")
-    norm = lambda x: re.sub(r"[^a-zñ' ]", " ", strip(re.sub(r"\d+", lambda m: num2words(int(m.group()), lang=t.get("lang", "en")), x.lower()))).split()
+    norm = lambda x: re.sub(r"[^a-zñ' ]", " ", strip(re.sub(r"</?[a-z]{2}>", "", re.sub(r"\d+", lambda m: num2words(int(m.group()), lang=t.get("lang", "en")), x.lower())))).split()
     r, h = norm(ref), norm(hyp)
     dd = list(range(len(h) + 1))
     for i in range(1, len(r) + 1):

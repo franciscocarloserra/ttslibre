@@ -100,7 +100,7 @@
   "ckpt_every": 3000,
   "val_every": 10000,
   "sample_every": 3000,
-  "sample_text": "El pijama de rayas es azul",
+  "sample_text": "<es>El pijama de rayas es azul</es>",
   "sample_steps": 16,
   "sample_cfg": 1.0,
   "max_minutes": 120,
@@ -111,11 +111,11 @@
   "sample_extra": [
    [
     "novel_es",
-    "El perro corre por el parque todas las tardes."
+    "<es>El perro corre por el parque todas las tardes.</es>"
    ],
    [
     "novel_en",
-    "Please call the doctor before noon tomorrow."
+    "<en>Please call the doctor before noon tomorrow.</en>"
    ]
   ],
   "stop_wer": 0.3,

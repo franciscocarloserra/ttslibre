@@ -1,7 +1,7 @@
 """Shared pieces: config, mel, tokenizer, blocks, models. Architecture follows SupertonicTTS
 (arXiv 2503.23108, Appendix A) and the Supertonic 3 tts.json layout: latent AE, text-to-latent
 flow matching with character input and cross-attention alignment, utterance-level duration predictor."""
-import json, math, os
+import json, math, os, re
 import torch, torch.nn as nn, torch.nn.functional as F
 import torchaudio
 
@@ -41,8 +41,8 @@ class Tokenizer:
         chars = sorted({c for t in texts for c in t})
         return cls(["<pad>"] + chars)
 
-    def encode(self, text):
-        return [self.idx.get(c, 0) for c in text]
+    def encode(self, text):  # language tags like <es> / </es> are single tokens if present in the vocab; everything else is per char
+        return [self.idx.get(c, 0) for c in re.findall(r"</?[a-z]{2}>|.", text, re.S)]
 
     def save(self, path):
         json.dump(self.vocab, open(path, "w"))

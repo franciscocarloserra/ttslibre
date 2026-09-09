@@ -100,7 +100,7 @@ A <select id=ma>%s</select> steps <input id=sa value="%d"> cfg <input id=ca_cfg 
 B <select id=mb>%s</select> steps <input id=sb value="%d"> cfg <input id=cb_cfg value="%s">
 <button id=cmpb onclick="cmp()">generate with both</button>
 <div id=cmpout></div></details>
-</div><div><h3>training runs, longest first</h3><div id=ov></div><div id=rounds></div></div></div>
+</div><div><div id=rounds></div><h3>training runs, longest first</h3><div id=ov></div></div></div>
 <script>
 let cur=null;const AU=new Audio();AU.onended=()=>{if(cur){cur.textContent='▶ '+cur.dataset.d;cur=null}};
 function pl(b){if(cur===b){AU.pause();AU.currentTime=0;b.textContent='▶ '+b.dataset.d;cur=null;return}if(cur){cur.textContent='▶ '+cur.dataset.d}cur=b;AU.src=b.dataset.src;AU.play();b.textContent='■ '+b.dataset.d}
