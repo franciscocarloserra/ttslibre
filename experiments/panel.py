@@ -12,7 +12,7 @@ from common import load_config, P
 from synth import Synth
 
 c = load_config(); p = c["panel"]
-LOG_RE = [re.compile(r"SAMPLE (\w+) step=(\d+) wer=([\d.]+) \| (.*)"), re.compile(r"(\S+) \((\d+)\)  (\w+) wer ([\d.]+)  whisper heard: (.*)"),
+LOG_RE = [re.compile(r"SAMPLE (\w+) step=(\d+) wer=([\d.]+) \| (.*)"), re.compile(r"(?:\[sample\] )?(\S+) \((\d+)\)  (\w+) wer ([\d.]+)  (?:whisper heard|heard): (.*)"),
           re.compile(r"SAMPLE step=(\d+) wer=([\d.]+) \| (.*)")]
 LABEL = {"train": "training sentence (should be memorized)", "knownwords": "known words, new order", "heldout1": "never-seen words", "heldout2": "never-seen words"}
 def label(n):
@@ -91,7 +91,8 @@ button{background:#2a6;color:#000;cursor:pointer}button.play{width:5.5em;padding
 .bw{color:#f66;text-decoration:underline}.dl{color:#f66;text-decoration:line-through}.bc{background:#a22;color:#fff;border-radius:2px}.dim{color:#777}
 table{width:100%%;font-size:13px;border-collapse:collapse}td{padding:2px 4px;vertical-align:middle}svg{background:#181818;border-radius:4px;display:block;width:100%%}</style>
 <div class=cols><div>
-<h3>Run</h3><select id=view onchange="load();ckpts()">%s</select> checkpoint <select id=ckpt></select><button class=play onclick="fetch('/save_now?run='+encodeURIComponent(view.value)).then(()=>setTimeout(ckpts,30000))" title="snapshot the running training's weights at its next log step (train.py 016+)">checkpoint now</button>
+<h3>Run</h3><select id=view onchange="load();ckpts()">%s</select> checkpoint <select id=ckpt></select>
+<div style="display:flex;gap:.5em;align-items:center;margin:.2em 0"><button class=play style="width:auto;padding:.3em .8em" onclick="fetch('/save_now?run='+encodeURIComponent(view.value)).then(()=>setTimeout(ckpts,30000))">snapshot</button><span class=dim>save the running training's current weights as a checkpoint</span></div>
 <svg id=chart viewBox="0 0 700 220"></svg>
 <div id=rounds></div>
 </div><div>
@@ -276,7 +277,7 @@ def _elapsed(log):
     """last 'XhYYm' / 'XXmYYs' prefix in progress.log -> seconds, string."""
     last = ""
     for line in open(log, errors="replace"):
-        m = re.match(r"(\d+)h(\d+)m|(\d+)m(\d+)s", line)
+        m = re.match(r"(?:\[\w+\] )?(?:(\d+)h(\d+)m|(\d+)m(\d+)s)", line)
         if m: last = m
     if not last: return 0, ""
     g = last.groups(); sec = int(g[0]) * 3600 + int(g[1]) * 60 if g[0] else int(g[2]) * 60 + int(g[3])

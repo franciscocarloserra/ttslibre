@@ -168,13 +168,13 @@
  },
  "gpu": {
   "util_target_pct": 70,
-    "util_tolerance_pct": 10,
-    "batch_step": 8,
-    "batch_max": 128,
-    "calib_max_tries": 3,
+  "util_tolerance_pct": 10,
+  "batch_step": 8,
+  "batch_max": 128,
+  "calib_max_tries": 3,
   "util_sample_seconds": 2,
   "smoke_measure_seconds": 90,
-    "smoke_skip_seconds": 25,
+  "smoke_skip_seconds": 25,
   "batch_candidates": [
    16,
    24,
@@ -185,5 +185,10 @@
  "eval": {
   "whisper_url": "http://localhost:6969/transcribe",
   "whisper_token_env": "WHISPER_TOKEN"
+ },
+ "log": {
+  "print_every_logs": 8,
+  "trend_window": 20,
+  "trend_tol": 0.02
  }
 }

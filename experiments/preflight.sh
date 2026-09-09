@@ -13,7 +13,7 @@ for try in $(seq 1 $TRIES); do
   PID=$!; sleep $SKIP; vals=(); i=0
   while kill -0 $PID 2>/dev/null; do
     vals+=($(nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits | head -1)); sleep 1; i=$((i+1))
-    [ $((i % 10)) -eq 0 ] && echo "[preflight]   ${i}s: gpu ${vals[-1]}%  $(grep -v 'whisper heard' runs/preflight_b$B/progress.log 2>/dev/null | tail -1 | cut -c1-60)"
+    [ $((i % 10)) -eq 0 ] && echo "[preflight]   ${i}s: gpu ${vals[-1]}%  $(grep -v 'heard:' runs/preflight_b$B/progress.log 2>/dev/null | tail -1 | cut -c1-70)"
   done
   wait $PID || { echo "[preflight] smoke FAILED (runs/preflight_b$B.out):"; tail -5 runs/preflight_b$B.out; exit 1; }
   u=$(printf "%s\n" "${vals[@]}" | awk '{s+=$1;n++} END{if(n)printf "%.0f", s/n; else print -1}')

@@ -2,6 +2,7 @@
 Samples one training sentence and N held-out sentences every sample_every steps (Whisper WER per sentence in TensorBoard).
 Stops at ttl.steps, ttl.max_minutes, or when held-out WER stays under ttl.stop_wer.
 Usage: train.py [--run name] [--set key=value ...] [--smoke] [--resume]"""
+import os; os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "3"); os.environ.setdefault("GRPC_VERBOSITY", "ERROR")  # tensorboard imports TF: hide its cuFFT/cuDNN factory warnings
 import json, os, random, sys, time
 import torch
 from common import load_config, TTL, Tokenizer, compress, lengths_to_mask, P, count_params
@@ -51,7 +52,7 @@ if t.get("init_from") and not resume:  # warm start from an aligned checkpoint (
 if resume and os.path.exists(os.path.join(run, "ttl.pt")):
     ck = torch.load(os.path.join(run, "ttl.pt"), map_location=dev)
     model.load_state_dict(ck["model"]); opt.load_state_dict(ck["opt"]); step = ck["step"]
-print(f"ttl params={count_params(model)/1e6:.2f}M (dp {count_params(model.dp)/1e6:.2f}M) train={len(rows)} steps={steps} batch={batch}x{Ke} dev={dev} fps={fps:.2f}", flush=True)
+print(f"[train] model {count_params(model)/1e6:.2f}M params (duration predictor {count_params(model.dp)/1e6:.2f}M)  clips {len(rows)}  batch {batch}x{Ke}  budget {steps} steps / {t['max_minutes']} min  {dev}" + (f"  resumed at step {step}" if resume and step else ""), flush=True)
 
 
 _lat = {}
@@ -117,9 +118,9 @@ def train_step(rs):
         loss = loss_fm + c["dp"]["loss_weight"] * loss_dp
     opt.zero_grad(set_to_none=True)
     loss.backward()
-    torch.nn.utils.clip_grad_norm_(model.parameters(), t["grad_clip"])
+    gn = torch.nn.utils.clip_grad_norm_(model.parameters(), t["grad_clip"])
     opt.step()
-    return loss_fm.item(), loss_dp.item()
+    return loss_fm.item(), loss_dp.item(), gn.item()
 
 
 @torch.no_grad()
@@ -197,8 +198,30 @@ def hms(sec):
     sec = int(sec); return f"{sec//3600}h{sec%3600//60:02d}m" if sec >= 3600 else f"{sec//60}m{sec%60:02d}s"
 
 
-def wer_str():
-    return " ".join(f"{n} {w:.2f}" for n, w in last_wer.items()) if last_wer else "-"
+TTY = sys.stdout.isatty() or os.environ.get("FORCE_COLOR") == "1"
+C = {"dim": "\033[2m", "bold": "\033[1m", "green": "\033[32m", "yellow": "\033[33m", "red": "\033[31m", "cyan": "\033[36m", "0": "\033[0m"}
+def col(txt, name): return f"{C[name]}{txt}{C['0']}" if TTY else str(txt)
+_hist = {}
+def trend(key, v, fmt, lower_is_better=True):
+    """Value colored by its own trend: vs the mean of its last log.trend_window printed values, green if better by more than log.trend_tol (relative), red if worse, plain otherwise."""
+    h = _hist.setdefault(key, []); o = sum(h) / len(h) if h else None; h.append(v); del h[:-c["log"]["trend_window"]]
+    if o is None or o == 0 or abs(v - o) / abs(o) < c["log"]["trend_tol"]: return fmt.format(v)
+    return col(fmt.format(v), "green" if (v < o) == lower_is_better else "red")
+def emit(stage, msg, plain=None):
+    """[stage] elapsed (step)  msg -> terminal (colored) and progress.log (plain). One line format for run.sh, preflight.sh and train.py."""
+    head = f"{hms(time.time()-t0)} ({step})"
+    print(f"{col(f'[{stage}]', 'dim')} {head}  {msg}", flush=True)
+    log.write(f"[{stage}] {head}  {plain if plain is not None else msg}\n"); log.flush()
+best = [9e9, 0]  # best held-out mean WER and its step
+def wer_line(color):
+    """Per language: held-out mean (novel), then train and best so far. Colored by trend and by the wer_good/wer_bad bands."""
+    f = (lambda k, w: trend(k, w, "{:.2f}")) if color else (lambda k, w: f"{w:.2f}")
+    langs = sorted({n.split("_")[1][:2] for n in last_wer if "_" in n}) or [""]; parts = []
+    for l in langs:
+        hs = [w for n, w in last_wer.items() if n.startswith("heldout") and (not l or n.split("_")[1].startswith(l))]
+        nv = [w for n, w in last_wer.items() if n.startswith("novel") and (not l or n.endswith(l))]
+        if hs or nv: parts.append((l or "all") + " " + (f(f"h{l}", sum(hs) / len(hs)) if hs else "") + (f" (novel {f(f'n{l}', nv[0])})" if nv else ""))
+    return "  ".join(parts) + f"  train {f('train', last_wer.get('train', 1.0))}  best {best[0]:.2f} @ {best[1]}"
 
 
 @torch.no_grad()
@@ -233,20 +256,21 @@ def sample(step):
         try:  # Whisper is the validator
             hyp = whisper(path); w = wer(text, hyp); ws[name] = w; last_wer[name] = w
             tb.add_scalar(f"wer/{name}", w, step); tb.add_text(f"{name}/whisper", f"wer={w:.2f} | {hyp}", step)
-            line = f"{hms(time.time()-t0)} ({step})  {name} wer {w:.2f}  whisper heard: {hyp}"
+            log.write(f"[sample] {hms(time.time()-t0)} ({step})  {name} wer {w:.2f}  heard: {hyp}\n"); log.flush()  # per-probe transcripts: progress.log and the panel only
         except Exception as ex:
-            line = f"{hms(time.time()-t0)} ({step})  {name} whisper failed: {ex}"
-        print(line, flush=True); log.write(line + "\n"); log.flush()
+            emit("sample", f"{name} whisper failed: {ex}")
     model.train()
     hw = [w for n, w in ws.items() if n.startswith("heldout")]
     if hw:
         m = sum(hw) / len(hw); heldout_hist.append(m); tb.add_scalar("wer/heldout_mean", m, step)
         if m < min(heldout_hist[:-1], default=9e9):  # best checkpoint by held-out WER
-            torch.save({"model": model.state_dict(), "step": step, "vocab": tok.vocab, "heldout_wer": m}, os.path.join(run, "best.pt"))
+            torch.save({"model": model.state_dict(), "step": step, "vocab": tok.vocab, "heldout_wer": m}, os.path.join(run, "best.pt")); best[:] = [m, step]
+    emit("wer", wer_line(True), wer_line(False))
 
 
 log = open(os.path.join(run, "progress.log"), "a")
 t0, order, kept = time.time(), [], 0
+ips_ref = (time.time(), step)  # (time, step) at the last printed train line, for it/s
 if resume and step: t0 -= ck.get("elapsed", 0)  # budget clock continues across restarts
 if step == 0: sample(0)  # baseline sample: what the untrained (or warm-started) model says
 while step < steps:
@@ -255,42 +279,46 @@ while step < steps:
     rs, order = order[:batch], order[batch:]
     lr = t["lr"] * min(1.0, (step + 1) / t["warmup"]) * (0.5 ** (step // t["lr_halve_every"]))
     for g in opt.param_groups: g["lr"] = lr
-    lf, ld = train_step(rs)
+    lf, ld, gn = train_step(rs)
     step += 1
     if lf != lf or ld != ld:  # NaN guard: stop, keep the last good checkpoint on disk
-        line = f"{hms(time.time()-t0)} ({step})  STOP: FAILED: loss is NaN"; print(line, flush=True); log.write(line + "\n"); log.flush(); break
+        emit("stop", col("FAILED: loss is NaN", "red"), "FAILED: loss is NaN"); break
     if step % t["log_every"] == 0 or smoke:
         gu = gpu_util() if step % (t["log_every"] * c["gpu"]["util_every_logs"]) == 0 else None
-        line = f"{hms(time.time()-t0)} ({step})  wer {wer_str()}  audio loss {lf:.3f}  duration loss {ld:.3f}" + (f"  gpu {gu:.0f}%" if gu is not None else "")
         if gu is not None: tb.add_scalar("train/gpu_util", gu, step)
-        print(line, flush=True); log.write(line + "\n"); log.flush()
+        if step % (t["log_every"] * c["log"]["print_every_logs"]) == 0 or smoke:  # terminal: every print_every_logs log windows; progress.log: every log_every steps
+            ips = (step - ips_ref[1]) / max(time.time() - ips_ref[0], 1e-6); ips_ref = (time.time(), step)
+            left = max(0, min(t["max_minutes"] * 60 - (time.time() - t0), (steps - step) / max(ips, 1e-6)))
+            plain = f"loss {lf:.3f}/{ld:.3f}  lr {lr:.1e}  grad {gn:.2f}  {ips:.1f} it/s  eta {hms(left)}" + (f"  gpu {gu:.0f}%" if gu is not None else "")
+            gcol = lambda u: col(f"{u:.0f}%", "green" if abs(u - c["gpu"]["util_target_pct"]) <= c["gpu"]["util_tolerance_pct"] else "red")
+            emit("train", f"loss {trend('lf', lf, '{:.3f}')}/{trend('ld', ld, '{:.3f}')}  lr {lr:.1e}  grad {trend('gn', gn, '{:.2f}')}  {trend('ips', ips, '{:.1f}', False)} it/s  eta {hms(left)}" + (f"  gpu {gcol(gu)}" if gu is not None else ""), plain)
+        else:
+            log.write(f"[train] {hms(time.time()-t0)} ({step})  loss {lf:.3f}/{ld:.3f}  lr {lr:.1e}  grad {gn:.2f}" + (f"  gpu {gu:.0f}%" if gu is not None else "") + "\n"); log.flush()
         tb.add_scalar("train/fm", lf, step); tb.add_scalar("train/dp", ld, step); tb.add_scalar("train/lr", lr, step)
     if step % t["val_every"] == 0 or step == steps:
         vf, vd = validate()
-        line = f"{hms(time.time()-t0)} ({step})  validation: audio loss {vf:.3f}  duration loss {vd:.3f}"
-        print(line, flush=True); log.write(line + "\n"); log.flush()
+        emit("val", f"loss {trend('vf', vf, '{:.3f}')}/{trend('vd', vd, '{:.3f}')}", f"loss {vf:.3f}/{vd:.3f}")
         tb.add_scalar("val/fm", vf, step); tb.add_scalar("val/dp", vd, step)
     if step % t["sample_every"] == 0 or step == steps:
         sample(step)
     flag = os.path.join(run, "save_now")  # touched by the panel ("checkpoint now"): snapshot the current weights at the next log step
     if os.path.exists(flag):
-        os.remove(flag); torch.save({"model": model.state_dict(), "step": step, "vocab": tok.vocab, "elapsed": time.time() - t0}, os.path.join(run, f"ttl_{hms(time.time()-t0)}_step{step}.pt")); print(f"checkpoint on demand: step {step}", flush=True)
+        os.remove(flag); torch.save({"model": model.state_dict(), "step": step, "vocab": tok.vocab, "elapsed": time.time() - t0}, os.path.join(run, f"ttl_{hms(time.time()-t0)}_step{step}.pt")); emit("ckpt", f"snapshot on demand ttl_{hms(time.time()-t0)}_step{step}.pt")
     if step % t["ckpt_every"] == 0 or step == steps:
         save()
         # partial checkpoints: ttl.keep_checkpoints snapshots spread over the time budget (weights only)
         q = int((time.time() - t0) / (t["max_minutes"] * 60 / t["keep_checkpoints"]))
         if q > kept and q <= t["keep_checkpoints"]:
-            kept = q; torch.save({"model": model.state_dict(), "step": step, "vocab": tok.vocab, "elapsed": time.time() - t0}, os.path.join(run, f"ttl_{hms(time.time()-t0)}_step{step}.pt"))
+            kept = q; torch.save({"model": model.state_dict(), "step": step, "vocab": tok.vocab, "elapsed": time.time() - t0}, os.path.join(run, f"ttl_{hms(time.time()-t0)}_step{step}.pt")); emit("ckpt", f"snapshot {q}/{t['keep_checkpoints']} ttl_{hms(time.time()-t0)}_step{step}.pt")
     stop = None
     if time.time() - t0 > t["max_minutes"] * 60: stop = f"max_minutes={t['max_minutes']}"
     W = t["stop_wer_window"]
     if len(heldout_hist) >= W and sum(heldout_hist[-W:]) / W < t["stop_wer"]: stop = f"heldout WER mean of last {W} < {t['stop_wer']}"
     if time.time() - t0 > t["fail_after_minutes"] * 60 and last_wer.get("train", 1.0) > t["fail_wer"]: stop = f"FAILED: train WER {last_wer.get('train', 1.0):.2f} > {t['fail_wer']} after {t['fail_after_minutes']} min"
     if stop:
-        line = f"{hms(time.time()-t0)} ({step})  STOP: {stop}"; print(line, flush=True); log.write(line + "\n"); log.flush()
-        save(); break
+        emit("stop", col(stop, "red" if stop.startswith("FAILED") else "cyan"), stop); save(); break
 vf, vd = validate()
 json.dump({"params": count_params(model), "dp_params": count_params(model.dp), "steps": step, "val_fm": vf, "val_dp_logl1": vd,
            "peak_vram_mib": torch.cuda.max_memory_allocated() / 2**20 if dev == "cuda" else 0, "seconds": time.time() - t0,
            "batch": batch, "batch_expand": Ke}, open(os.path.join(run, "summary.json"), "w"), indent=1)
-print("done", flush=True)
+emit("done", f"val loss audio {vf:.3f} duration {vd:.3f}  summary.json written")
