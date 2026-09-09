@@ -91,7 +91,7 @@ button{background:#2a6;color:#000;cursor:pointer}button.play{width:5.5em;padding
 .bw{color:#f66;text-decoration:underline}.dl{color:#f66;text-decoration:line-through}.bc{background:#a22;color:#fff;border-radius:2px}.dim{color:#777}
 table{width:100%%;font-size:13px;border-collapse:collapse}td{padding:2px 4px;vertical-align:middle}svg{background:#181818;border-radius:4px;display:block;width:100%%}</style>
 <div class=cols><div>
-<h3>Run</h3><select id=view onchange="load();ckpts()">%s</select> checkpoint <select id=ckpt></select>
+<h3>Run</h3><select id=view onchange="load();ckpts()">%s</select> checkpoint <select id=ckpt></select><button class=play onclick="fetch('/save_now?run='+encodeURIComponent(view.value)).then(()=>setTimeout(ckpts,30000))" title="snapshot the running training's weights at its next log step (train.py 016+)">checkpoint now</button>
 <svg id=chart viewBox="0 0 700 220"></svg>
 <div id=rounds></div>
 </div><div>
@@ -315,6 +315,9 @@ class H(BaseHTTPRequestHandler):
             R.update({os.path.basename(f)[:-3]: f for f in sorted(glob.glob(os.path.join(HERE, "voices", "*.pt"))) if not f.endswith(".style.pt")})  # voicepacks (AE latents, checkpoint-independent); .style.pt are tied to one checkpoint
             body = json.dumps(R).encode()
             self.send_response(200); self.send_header("Content-Type", "application/json"); self.end_headers(); self.wfile.write(body); return
+        if self.path.startswith("/save_now?"):  # ask a running train.py (016+) to snapshot its weights at the next log step
+            rd = self.path.split("run=")[1].replace("%2F", "/"); open(os.path.join(rd, "save_now"), "w").close()
+            self.send_response(200); self.end_headers(); self.wfile.write(b"ok"); return
         if self.path.startswith("/ckpts?"):
             rd = self.path.split("run=")[1].replace("%2F", "/")
             fs = sorted([f for f in glob.glob(os.path.join(rd, "*.pt")) if re.match(r"(ttl|best)(_.*)?\.pt$", os.path.basename(f))], key=os.path.getmtime, reverse=True)

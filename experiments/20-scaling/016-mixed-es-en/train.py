@@ -272,6 +272,9 @@ while step < steps:
         tb.add_scalar("val/fm", vf, step); tb.add_scalar("val/dp", vd, step)
     if step % t["sample_every"] == 0 or step == steps:
         sample(step)
+    flag = os.path.join(run, "save_now")  # touched by the panel ("checkpoint now"): snapshot the current weights at the next log step
+    if os.path.exists(flag):
+        os.remove(flag); torch.save({"model": model.state_dict(), "step": step, "vocab": tok.vocab, "elapsed": time.time() - t0}, os.path.join(run, f"ttl_{hms(time.time()-t0)}_step{step}.pt")); print(f"checkpoint on demand: step {step}", flush=True)
     if step % t["ckpt_every"] == 0 or step == steps:
         save()
         # partial checkpoints: ttl.keep_checkpoints snapshots spread over the time budget (weights only)
