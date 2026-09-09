@@ -30,6 +30,8 @@ def sentences(run_dir):
     train = [json.loads(l) for l in open(os.path.join(prep, "train.jsonl"))]; val = [json.loads(l) for l in open(os.path.join(prep, "val.jsonl"))]
     if d.get("speaker"): train = [r for r in train if r["speaker"] == d["speaker"]]; val = [r for r in val if r["speaker"] == d["speaker"]] or train[:4]
     names = [("train", t["sample_text"])] + [tuple(x) for x in t.get("sample_extra", [])] + [(f"heldout{i+1}", r["text"]) for i, r in enumerate(val[: t.get("sample_heldout_n", 0)])]
+    for lang in sorted({r.get("lang", "") for r in val} - {""}):  # 016+: per-language held-out probes, same rule as train.py
+        names += [(f"heldout_{lang}{i+1}", r["text"]) for i, r in enumerate([r for r in val if r.get("lang", "") == lang][: t.get("sample_heldout_per_lang", 0)])]
     out = {}
     for n, text in names:
         orig = [r for r in train + val if r["text"] == text]
