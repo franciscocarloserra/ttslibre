@@ -93,6 +93,8 @@ table{width:100%%;font-size:13px;border-collapse:collapse}td{padding:2px 4px;ver
 <div class=cols><div>
 <h3>Run</h3><select id=view onchange="load();ckpts()">%s</select> checkpoint <select id=ckpt></select>
 <svg id=chart viewBox="0 0 700 220"></svg>
+<div id=rounds></div>
+</div><div>
 <h3>Generate</h3>
 voice <select id=refsel onchange="ref.value=this.value"></select>
 <textarea id=text rows=3 onkeydown="if(event.key=='Enter'&&!event.shiftKey){event.preventDefault();go()}">%s</textarea>
@@ -110,7 +112,7 @@ B <select id=mb>%s</select> steps <input id=sb value="%d"> cfg <input id=cb_cfg 
 <button id=cmpb onclick="cmp()">generate with both</button>
 <div id=cmpout></div></details>
 <h3>Training runs</h3><div id=ov></div>
-</div><div><div id=rounds></div></div></div>
+</div></div>
 <script>
 let cur=null;const AU=new Audio();AU.onended=()=>{if(cur){cur.textContent='▶ '+cur.dataset.d;cur=null}};
 function pl(b){if(cur===b){AU.pause();AU.currentTime=0;b.textContent='▶ '+b.dataset.d;cur=null;return}if(cur){cur.textContent='▶ '+cur.dataset.d}cur=b;AU.src=b.dataset.src;AU.play();b.textContent='■ '+b.dataset.d}
