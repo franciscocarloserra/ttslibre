@@ -340,7 +340,7 @@ class H(BaseHTTPRequestHandler):
             zref, rmask = S.style(q["ref"]) if hasattr(S, "style") else S.style_from_wav(q["ref"])
             t0 = time.time(); wav, dur = S(q["text"], zref, rmask, steps=q["steps"], cfg=q["cfg"], duration_scale=q["dur"], lang=q.get("lang") or None); el = time.time() - t0
             buf = io.BytesIO(); sf.write(buf, wav, c["data"]["sample_rate"], format="WAV")
-            info = json.dumps({"ckpt": os.path.relpath(q["run"], P("../..")), "steps": q["steps"], "cfg": q["cfg"], "lang": q.get("lang") or S.c["synth"].get("lang", ""), "seconds": round(dur, 2), "gen_s": round(el, 2), "rtf": round(el / max(dur, 1e-6), 2), "device": S.dev})
+            info = json.dumps({"ckpt": os.path.relpath(q["run"], P("../..")), "steps": q["steps"], "cfg": q["cfg"], "lang": q.get("lang") or S.lang, "text": S.tag(q["text"], q.get("lang") or None), "seconds": round(dur, 2), "gen_s": round(el, 2), "rtf": round(el / max(dur, 1e-6), 2), "device": S.dev})
             self.send_response(200); self.send_header("Content-Type", "audio/wav"); self.send_header("X-Info", info); self.end_headers(); self.wfile.write(buf.getvalue())
         except Exception as ex:
             self.send_response(500); self.end_headers(); self.wfile.write(str(ex).encode())

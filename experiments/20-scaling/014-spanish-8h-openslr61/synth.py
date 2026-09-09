@@ -13,6 +13,9 @@ class Synth:
         self.K, self.fps = c["latent"]["compress"], d["sample_rate"] / d["hop"] / c["latent"]["compress"]
         ck = torch.load(P(run or "runs/ttl/ttl.pt"), map_location=self.dev)
         self.tok = Tokenizer(ck["vocab"])
+        # default language tag: synth.lang of the experiment that owns the checkpoint (the panel may load checkpoints of other experiments)
+        exp = os.path.abspath(P(run or "runs/ttl/ttl.pt")).split("/runs/")[0]; ec = os.path.join(exp, "config.json")
+        self.lang = (json.load(open(ec))["synth"].get("lang", "") if os.path.exists(ec) else "") or s.get("lang", "")
         self.model = TTL(c, len(self.tok.vocab)).to(self.dev).eval()
         self.model.load_state_dict(ck["model"])
         self.ae = LatentAE(c).to(self.dev).eval()
@@ -58,7 +61,7 @@ class Synth:
     @torch.no_grad()
     def tag(self, text, lang=None):
         """Wrap text in <lang>...</lang> when the checkpoint vocab has language tags (016+) and the text is not tagged yet; lang defaults to synth.lang."""
-        lang = lang or self.c["synth"].get("lang", "")
+        lang = lang or getattr(self, "lang", "") or self.c["synth"].get("lang", "")
         return f"<{lang}>{text}</{lang}>" if lang and f"<{lang}>" in self.tok.idx and not text.lstrip().startswith("<") else text
 
     def __call__(self, text, zref, rmask, steps=None, cfg=None, duration_scale=None, lang=None):
