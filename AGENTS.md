@@ -74,3 +74,7 @@ Every training run keeps at least 4 partial checkpoints spread over its time bud
 
 ## Experiment names (from the user)
 Directory names state the question the experiment answers, in plain words: `NNN-<question-as-a-slug>` (e.g. `006-generalize-40-speakers`), grouped by topic under `experiments/<group>/` (see `experiments/README.md`; regrouped 2026-09-09, numbering stays global and is never reused). No cryptic names. Renamed on 2026-09-06; run dirs on the HDD keep the number only (`/media/usuario/hdd-unencrypted/ttslibre/NNN/runs`).
+
+## GPU utilization (project preference, 2026-09-09)
+
+- Every training run is sized, calibrated and validated for GPU utilization of 70 % ± 10 % (`gpu.util_target_pct` / `gpu.util_tolerance_pct` in the experiment config). Calibrate before launching (smoke per batch candidate, measured over enough steps), validate on the log line (`gpu NN%`) during the first minutes, and relaunch if it is outside the band. 016 iterations 1–2 ran at 15–27 %: per-clip `torch.load` of latents and batch 16 were the bottleneck.

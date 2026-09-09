@@ -54,8 +54,10 @@ if resume and os.path.exists(os.path.join(run, "ttl.pt")):
 print(f"ttl params={count_params(model)/1e6:.2f}M (dp {count_params(model.dp)/1e6:.2f}M) train={len(rows)} steps={steps} batch={batch}x{Ke} dev={dev} fps={fps:.2f}", flush=True)
 
 
-def load_latent(r):
-    z = torch.load(os.path.join(prep, "latents", r["id"] + ".pt")).float()[None].to(dev)
+_lat = {}
+def load_latent(r):  # latents are cached in RAM after first read (whole prep is ~150 MB): per-clip torch.load left the GPU at 15-27 %
+    if r["id"] not in _lat: _lat[r["id"]] = torch.load(os.path.join(prep, "latents", r["id"] + ".pt")).float()
+    z = _lat[r["id"]][None].to(dev)
     return compress((z - mean) / std, K)[0]  # (K*L, Tc)
 
 

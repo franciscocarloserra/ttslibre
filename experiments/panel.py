@@ -94,7 +94,7 @@ voice <select id=refsel onchange="ref.value=this.value"></select>
 <div id=words style="margin:.4em 0;line-height:1.8"></div><pre id=out></pre>
 <details><summary>advanced</summary>
 ref clip <input id=ref value="%s" size=60>
-steps <input id=steps value="%d"> cfg <input id=cfg value="%s"> duration scale <input id=dur value="%s"></details>
+steps <input id=steps value="%d"> cfg <input id=cfg value="%s"> duration scale <input id=dur value="%s"> lang <input id=lang value="%s" size=3 title="language tag for 016+ checkpoints (es/en); empty = config synth.lang"></details>
 <details><summary>compare two models</summary>
 A <select id=ma>%s</select> steps <input id=sa value="%d"> cfg <input id=ca_cfg value="%s"><br>
 B <select id=mb>%s</select> steps <input id=sb value="%d"> cfg <input id=cb_cfg value="%s">
@@ -144,13 +144,13 @@ words.innerHTML=`<div><span class=dim>expected:</span> ${ref}</div><div><span cl
 if(VZ&&w.has_ts){const bad=w.hyp.filter(h=>h.op!='eq'&&h.start!=null).map(h=>[h.start,h.end]);
 // deletions: mark the gap after the previous aligned hyp word
 const hs=w.hyp.filter(h=>h.start!=null);w.ref.forEach((r,i)=>{if(r.op!='del')return;const prev=hs[Math.min(i,hs.length)-1];if(prev)bad.push([prev.end,prev.end+0.15])});drawWave(VZ,bad)}}
-async function one(run,slot,st,cf){const r=await fetch('/synth',{method:'POST',body:JSON.stringify({run:run,text:text.value,ref:ref.value,steps:st,cfg:cf,dur:+dur.value})});
+async function one(run,slot,st,cf){const r=await fetch('/synth',{method:'POST',body:JSON.stringify({run:run,text:text.value,ref:ref.value,steps:st,cfg:cf,dur:+dur.value,lang:lang.value})});
 if(!r.ok){slot.innerHTML='<pre>'+await r.text()+'</pre>';return}const blob=await r.blob();slot.innerHTML=btn(URL.createObjectURL(blob))+' <pre style="display:inline">'+decodeURIComponent(r.headers.get('x-info'))+'</pre>';durs();
 const w=await (await fetch('/wer',{method:'POST',headers:{'X-Text':encodeURIComponent(text.value)},body:blob})).json();slot.innerHTML+=`<pre>${w.error?'wer failed '+w.error:`wer ${w.wer.toFixed(2)} · whisper: ${w.heard}`}</pre>`}
 async function cmp(){cmpb.disabled=true;cmpout.innerHTML=`<div><b>A</b> ${ma.options[ma.selectedIndex].text}<div id=ca>generating...</div></div><div><b>B</b> ${mb.options[mb.selectedIndex].text}<div id=cb>generating...</div></div>`;
 await one(ma.value,ca,+sa.value,+ca_cfg.value);await one(mb.value,cb,+sb.value,+cb_cfg.value);cmpb.disabled=false}
 async function go(){const b=document.querySelector('button');b.disabled=true;out.textContent='generating...';
-const r=await fetch('/synth',{method:'POST',body:JSON.stringify({run:ckpt.value,text:text.value,ref:ref.value,steps:+steps.value,cfg:+cfg.value,dur:+dur.value})});
+const r=await fetch('/synth',{method:'POST',body:JSON.stringify({run:ckpt.value,text:text.value,ref:ref.value,steps:+steps.value,cfg:+cfg.value,dur:+dur.value,lang:lang.value})});
 if(!r.ok){out.textContent=await r.text();b.disabled=false;return}
 const blob=await r.blob();const u=URL.createObjectURL(blob);gen.innerHTML=btn(u);durs();pl(gen.firstChild);out.textContent=decodeURIComponent(r.headers.get('x-info'))+'\\nwer: checking...';b.disabled=false;words.innerHTML='';showViz(blob);
 const w=await (await fetch('/wer',{method:'POST',headers:{'X-Text':encodeURIComponent(text.value)},body:blob})).json();out.textContent=out.textContent.replace('wer: checking...',w.error?'wer: failed '+w.error:`wer ${w.wer.toFixed(2)}\\nwhisper: ${w.heard}`);if(!w.error)showWords(w)}
@@ -320,7 +320,7 @@ class H(BaseHTTPRequestHandler):
         runs = sorted([r for r in glob.glob(P(p["runs_glob"]), recursive=True) if "todelete" not in r and "smoke" not in r and re.match(r"(ttl|best)(_.*)?\.pt$", os.path.basename(r))], key=os.path.getmtime, reverse=True)
         views = "".join(f"<option value='{v}'>{os.path.relpath(v, P('../..'))}</option>" for v in dict.fromkeys(os.path.dirname(r) for r in runs))
         s = c["synth"]; files = "".join(f"<option value='{r}'>{os.path.relpath(r, P('../..'))}</option>" for r in runs)
-        body = (HTML % (views, c["ttl"]["sample_text"], P(s["ref_clip"]), s["steps"], s["cfg"], s["duration_scale"], files, s["steps"], s["cfg"], files, s["steps"], s["cfg"], p["overview_rows"], p["overview_rows"], p["overview_rows"])).encode()
+        body = (HTML % (views, c["ttl"]["sample_text"], P(s["ref_clip"]), s["steps"], s["cfg"], s["duration_scale"], s.get("lang", ""), files, s["steps"], s["cfg"], files, s["steps"], s["cfg"], p["overview_rows"], p["overview_rows"], p["overview_rows"])).encode()
         self.send_response(200); self.send_header("Content-Type", "text/html; charset=utf-8"); self.end_headers(); self.wfile.write(body)
 
     def do_POST(self):
@@ -338,9 +338,9 @@ class H(BaseHTTPRequestHandler):
         try:
             S = get_synth(q["run"])
             zref, rmask = S.style(q["ref"]) if hasattr(S, "style") else S.style_from_wav(q["ref"])
-            t0 = time.time(); wav, dur = S(q["text"], zref, rmask, steps=q["steps"], cfg=q["cfg"], duration_scale=q["dur"]); el = time.time() - t0
+            t0 = time.time(); wav, dur = S(q["text"], zref, rmask, steps=q["steps"], cfg=q["cfg"], duration_scale=q["dur"], lang=q.get("lang") or None); el = time.time() - t0
             buf = io.BytesIO(); sf.write(buf, wav, c["data"]["sample_rate"], format="WAV")
-            info = json.dumps({"ckpt": os.path.relpath(q["run"], P("../..")), "steps": q["steps"], "cfg": q["cfg"], "seconds": round(dur, 2), "gen_s": round(el, 2), "rtf": round(el / max(dur, 1e-6), 2), "device": S.dev})
+            info = json.dumps({"ckpt": os.path.relpath(q["run"], P("../..")), "steps": q["steps"], "cfg": q["cfg"], "lang": q.get("lang") or S.c["synth"].get("lang", ""), "seconds": round(dur, 2), "gen_s": round(el, 2), "rtf": round(el / max(dur, 1e-6), 2), "device": S.dev})
             self.send_response(200); self.send_header("Content-Type", "audio/wav"); self.send_header("X-Info", info); self.end_headers(); self.wfile.write(buf.getvalue())
         except Exception as ex:
             self.send_response(500); self.end_headers(); self.wfile.write(str(ex).encode())

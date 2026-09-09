@@ -56,9 +56,15 @@ class Synth:
         return self.style_from_voice(ref) if ref.endswith(".pt") else self.style_from_wav(ref)
 
     @torch.no_grad()
-    def __call__(self, text, zref, rmask, steps=None, cfg=None, duration_scale=None):
+    def tag(self, text, lang=None):
+        """Wrap text in <lang>...</lang> when the checkpoint vocab has language tags (016+) and the text is not tagged yet; lang defaults to synth.lang."""
+        lang = lang or self.c["synth"].get("lang", "")
+        return f"<{lang}>{text}</{lang}>" if lang and f"<{lang}>" in self.tok.idx and not text.lstrip().startswith("<") else text
+
+    def __call__(self, text, zref, rmask, steps=None, cfg=None, duration_scale=None, lang=None):
         s = self.c["synth"]
         steps, cfg = steps or s["steps"], s["cfg"] if cfg is None else cfg
+        text = self.tag(text, lang)
         ids = torch.tensor([self.tok.encode(text)], device=self.dev)
         tmask = torch.ones_like(ids, dtype=torch.bool)
         st = zref if isinstance(zref, dict) else self.style_tensors(zref, rmask)  # zref may be a style dict (style pack)
