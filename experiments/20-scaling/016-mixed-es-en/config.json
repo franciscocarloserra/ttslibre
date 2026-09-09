@@ -43,7 +43,7 @@
   "enc_layers": 6,
   "dec_layers": 6,
   "epochs": 40,
-  "batch": 32,
+  "batch": 16,
   "crop_frames": 384,
   "lr": 0.0005,
   "amp": true,
