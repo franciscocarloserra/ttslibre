@@ -176,13 +176,21 @@ heldout_hist = []
 last_wer = {}  # latest WER per sample sentence, shown on every log line
 
 
-def gpu_util():
-    """GPU utilization %, averaged over gpu.util_sample_seconds samples of nvidia-smi (one per second); -1 if unavailable."""
+_gpu = {"v": None}
+def _gpu_sample():
+    """nvidia-smi sampled in a background thread (a synchronous sample pauses the training loop and measures an idle GPU: 016 logged 17-34% while live util was 90-100%)."""
     import subprocess
     try:
         o = subprocess.run(["nvidia-smi", "--query-gpu=utilization.gpu", "--format=csv,noheader,nounits", "-l", "1"], capture_output=True, text=True, timeout=c["gpu"]["util_sample_seconds"] + 1).stdout
     except subprocess.TimeoutExpired as ex: o = ex.stdout.decode() if ex.stdout else ""
-    v = [int(x) for x in o.split() if x.isdigit()]; return sum(v) / len(v) if v else -1
+    v = [int(x) for x in o.split() if x.isdigit()]; _gpu["v"] = sum(v) / len(v) if v else -1
+
+def gpu_util():
+    """GPU utilization % measured during the previous log window (gpu.util_sample_seconds one-per-second samples, background thread); None until the first sample lands."""
+    import threading
+    r = _gpu["v"]; _gpu["v"] = None
+    threading.Thread(target=_gpu_sample, daemon=True).start()
+    return r
 
 
 def hms(sec):

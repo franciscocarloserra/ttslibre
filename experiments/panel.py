@@ -312,7 +312,7 @@ class H(BaseHTTPRequestHandler):
         if self.path == "/refs":  # voices: 007 reference clips + voices/*.pt
             r = json.load(open(os.path.join(HERE, "30-voices", "007-zero-shot-voice", "config.json")))["refs"]["refs"]
             R = {k: os.path.abspath(os.path.join(HERE, "30-voices", "007-zero-shot-voice", v)) for k, v in r.items()}
-            R.update({os.path.basename(f)[:-3]: f for f in sorted(glob.glob(os.path.join(HERE, "voices", "*.pt")))})  # voicepacks made by voice.py
+            R.update({os.path.basename(f)[:-3]: f for f in sorted(glob.glob(os.path.join(HERE, "voices", "*.pt"))) if not f.endswith(".style.pt")})  # voicepacks (AE latents, checkpoint-independent); .style.pt are tied to one checkpoint
             body = json.dumps(R).encode()
             self.send_response(200); self.send_header("Content-Type", "application/json"); self.end_headers(); self.wfile.write(body); return
         if self.path.startswith("/ckpts?"):
