@@ -62,12 +62,12 @@ class Synth:
         return self.style_from_voice(ref) if ref.endswith(".pt") else self.style_from_wav(ref)
 
     def detect(self, text):
-        """es/en from text (same rule as know-how/local-tts tts_server.detect_lang): Spanish chars, apostrophe, stopword counts; "" if undecided."""
+        """es/en from text (same rule as know-how/local-tts tts_server.detect_lang): Spanish chars, apostrophe, stopword counts; English when undecided."""
         t = text.lower()
         if re.search(r"[ñáéíóúü¿¡]", t): return "es"
         if "'" in t or "\u2019" in t: return "en"
         w = re.findall(r"[a-z]+", t); en = sum(x in EN for x in w); es = sum(x in ES for x in w)
-        return "" if en == es else ("en" if en > es else "es")
+        return "es" if es > en else "en"  # tie or no clue: English (most users)
 
     @torch.no_grad()
     def tag(self, text, lang=None):

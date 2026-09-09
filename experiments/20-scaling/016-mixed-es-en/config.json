@@ -120,7 +120,7 @@
   ],
   "stop_wer": 0.3,
   "keep_checkpoints": 4,
-  "lang": "es",
+  "lang": "en",
   "sample_heldout_per_lang": 3
  },
  "dp": {
@@ -139,7 +139,7 @@
   "steps": 16,
   "cfg": 2.0,
   "duration_scale": 1.0,
-  "lang": "es",
+  "lang": "en",
   "cpu_threads": 8,
   "ref_clip": "../../../datasets/openslr61/arf_00295_00000740990.wav"
  },
