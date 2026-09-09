@@ -120,7 +120,7 @@
   ],
   "stop_wer": 0.3,
   "keep_checkpoints": 4,
-  "lang": "en",
+  "lang": "es",
   "sample_heldout_per_lang": 3
  },
  "dp": {
