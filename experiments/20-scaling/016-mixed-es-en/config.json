@@ -103,7 +103,7 @@
   "sample_text": "<es>El pijama de rayas es azul</es>",
   "sample_steps": 16,
   "sample_cfg": 1.0,
-  "max_minutes": 180,
+  "max_minutes": 265,
   "stop_wer_window": 3,
   "init_from": "",
   "fail_after_minutes": 100000,
