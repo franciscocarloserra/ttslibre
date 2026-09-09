@@ -5,7 +5,7 @@ import glob, io, json, os, re, sys, time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 HERE = os.path.dirname(os.path.abspath(__file__))
 argv = sys.argv[1:]
-EXP = argv[argv.index("--exp") + 1] if "--exp" in argv else sorted(d for d in os.listdir(HERE) if re.match(r"\d{3}-", d))[-1]
+EXP = argv[argv.index("--exp") + 1] if "--exp" in argv else sorted(os.path.relpath(d, HERE) for d in glob.glob(os.path.join(HERE, "*", "[0-9][0-9][0-9]-*")) if os.path.isdir(d))[-1]  # group/NNN-slug
 os.chdir(os.path.join(HERE, EXP)); sys.path.insert(0, os.getcwd())
 import torch, soundfile as sf
 from common import load_config, P
@@ -17,18 +17,23 @@ LOG_RE = [re.compile(r"SAMPLE (\w+) step=(\d+) wer=([\d.]+) \| (.*)"), re.compil
 LABEL = {"train": "training sentence (should be memorized)", "knownwords": "known words, new order", "heldout1": "never-seen words", "heldout2": "never-seen words"}
 
 
+def _P(rel):
+    """P() with fallback one level up: config.effective.json written before the 2026-09-09 regrouping has dataset paths one level short."""
+    p = P(rel); return p if os.path.exists(p) else P(os.path.join("..", rel))
+
+
 def sentences(run_dir):
     """name -> {text, original wav path or None}, reconstructed from the run's effective config and the prep split."""
     cfg = os.path.join(run_dir, "config.effective.json")
     cc = json.load(open(cfg)) if os.path.exists(cfg) else c
-    t, d = cc["ttl"], cc["data"]; prep = P(d["prep_dir"])
+    t, d = cc["ttl"], cc["data"]; prep = _P(d["prep_dir"])
     train = [json.loads(l) for l in open(os.path.join(prep, "train.jsonl"))]; val = [json.loads(l) for l in open(os.path.join(prep, "val.jsonl"))]
     if d.get("speaker"): train = [r for r in train if r["speaker"] == d["speaker"]]; val = [r for r in val if r["speaker"] == d["speaker"]] or train[:4]
     names = [("train", t["sample_text"])] + [tuple(x) for x in t.get("sample_extra", [])] + [(f"heldout{i+1}", r["text"]) for i, r in enumerate(val[: t.get("sample_heldout_n", 0)])]
     out = {}
     for n, text in names:
         orig = [r for r in train + val if r["text"] == text]
-        out[n] = {"text": text, "label": LABEL.get(n, n), "original": os.path.join(P(d.get("raw_dir") or d["raw_root"]), orig[0]["path"]) if orig else None}
+        out[n] = {"text": text, "label": LABEL.get(n, n), "original": os.path.join(_P(d.get("raw_dir") or d["raw_root"]), orig[0]["path"]) if orig else None}
     return out
 
 
@@ -91,10 +96,11 @@ voice <select id=refsel onchange="ref.value=this.value"></select>
 ref clip <input id=ref value="%s" size=60>
 steps <input id=steps value="%d"> cfg <input id=cfg value="%s"> duration scale <input id=dur value="%s"></details>
 <details><summary>compare two models</summary>
-A <select id=ma>%s</select> B <select id=mb>%s</select>
+A <select id=ma>%s</select> steps <input id=sa value="%d"> cfg <input id=ca_cfg value="%s"><br>
+B <select id=mb>%s</select> steps <input id=sb value="%d"> cfg <input id=cb_cfg value="%s">
 <button id=cmpb onclick="cmp()">generate with both</button>
 <div id=cmpout></div></details>
-</div><div id=rounds></div></div>
+</div><div><h3>training runs, longest first</h3><div id=ov></div><div id=rounds></div></div></div>
 <script>
 let cur=null;const AU=new Audio();AU.onended=()=>{if(cur){cur.textContent='▶ '+cur.dataset.d;cur=null}};
 function pl(b){if(cur===b){AU.pause();AU.currentTime=0;b.textContent='▶ '+b.dataset.d;cur=null;return}if(cur){cur.textContent='▶ '+cur.dataset.d}cur=b;AU.src=b.dataset.src;AU.play();b.textContent='■ '+b.dataset.d}
@@ -109,7 +115,8 @@ for(const v of [0,0.5,1,1.5,2]) if(v<=my){c.append(el('line',{x1:L,x2:W,y1:Y(v),
 const names=[...new Set(d.map(r=>r.name))];
 names.forEach((n,i)=>{c.append(el('polyline',{points:d.filter(r=>r.name==n).map(r=>X(r.step)+','+Y(r.wer)).join(' '),fill:'none',stroke:COL[n]||'#aaa','stroke-width':2}));
 const t=el('text',{x:L+10+i*130,y:14,fill:COL[n]||'#aaa','font-size':12});t.textContent=n+' (wer)';c.append(t)});
-const t=el('text',{x:W-70,y:H-6,fill:'#888','font-size':11});t.textContent='step '+mx;c.append(t);
+const EL={};for(const r of d)if(r.elapsed)EL[r.step]=r.elapsed;const ks=Object.keys(EL).map(Number).sort((a,b)=>a-b);
+for(let i=1;i<=5;i++){const s=Math.round(mx*i/5);const k=ks.length?ks.reduce((p,q)=>Math.abs(q-s)<Math.abs(p-s)?q:p):s;c.append(el('line',{x1:X(s),x2:X(s),y1:H-B,y2:H-B+4,stroke:'#666'}));const t=el('text',{x:X(s),y:H-6,fill:'#888','font-size':11,'text-anchor':'end'});const hrs=e=>{const m=/(\d+)h(\d+)m|(\d+)m(\d+)s/.exec(e||'');return m?(m[1]?+m[1]+m[2]/60:m[3]/60).toFixed(1)+' h':''};t.textContent=ks.length?hrs(EL[k]):'step '+s;c.append(t)}
 const steps=[...new Set(d.map(r=>r.step))].sort((a,b)=>b-a);const N=steps.length;let h='<h3>rounds, newest first</h3>';
 const legend=Object.entries(S).map(([n,x])=>`<div style="color:${COL[n]||'#aaa'}"><b>${n}</b> = ${x.label}: <i>${x.text}</i>${x.original?` ${btn(`/wav?run=x&f=x&orig=${encodeURIComponent(x.original)}`)} (original recording)`:''}</div>`).join('');
 h+='<details open><summary>the sentences</summary>'+legend+'</details>';
@@ -117,6 +124,10 @@ steps.forEach((s,i)=>{const rs=d.filter(r=>r.step==s);h+=`<div style="border:1px
 for(const r of rs) h+=`<tr><td style="color:${COL[r.name]||'#aaa'};white-space:nowrap;width:9em"><b>${r.name}</b><br>wer ${r.wer.toFixed(2)}</td><td style="width:6em">${btn(`/wav?run=${encodeURIComponent(view.value)}&f=${r.name}_step_${String(s).padStart(6,'0')}.wav`)}</td><td style="color:#999">input: <span style="color:#ddd">${(S[r.name]||{}).text||''}</span><br>whisper: <span style="color:#ddd">${r.heard}</span></td></tr>`;h+='</table></div>'});
 const rd=document.getElementById('rounds');if(rd.dataset.h!==h){rd.innerHTML=h;rd.dataset.h=h;durs()}}
 async function ckpts(){const L=await (await fetch('/ckpts?run='+encodeURIComponent(view.value))).json();const cur=ckpt.value;ckpt.innerHTML=L.map(x=>`<option value='${x.path}'>${x.name} (${x.time})</option>`).join('');if([...ckpt.options].some(o=>o.value===cur))ckpt.value=cur}
+let OVN=%d;async function ov(){const R=await (await fetch('/overview')).json();const rows=R.slice(0,OVN);let h='';
+for(const r of rows)h+=`<div style="border:1px solid #333;border-radius:6px;padding:.5em;margin:.4em 0"><div><b>${r.wall}</b> <span style="color:#aaa">${r.exp}/${r.run}</span></div><div style="color:#ddd;margin:.2em 0">${r.question}</div><div style="color:#888;font-size:13px">${r.data}${r.hours!=null?` · ${r.hours} h · ${r.clips} clips · ${r.speakers} spk`:''} · init ${r.init}</div></div>`;
+if(R.length>OVN)h+=`<button class=play style="width:auto" onclick="OVN+=%d;ov()">+%d more (${R.length-OVN} left)</button>`;ov_el.innerHTML=h}
+const ov_el=document.getElementById('ov');ov();
 load();ckpts();setInterval(load,15000);setInterval(ckpts,60000);
 (async()=>{const R=await (await fetch('/refs')).json();refsel.innerHTML=Object.entries(R).map(([k,v])=>`<option value="${v}">${k}</option>`).join('');ref.value=refsel.value})();
 let VZ=null;
@@ -133,11 +144,11 @@ words.innerHTML=`<div><span class=dim>expected:</span> ${ref}</div><div><span cl
 if(VZ&&w.has_ts){const bad=w.hyp.filter(h=>h.op!='eq'&&h.start!=null).map(h=>[h.start,h.end]);
 // deletions: mark the gap after the previous aligned hyp word
 const hs=w.hyp.filter(h=>h.start!=null);w.ref.forEach((r,i)=>{if(r.op!='del')return;const prev=hs[Math.min(i,hs.length)-1];if(prev)bad.push([prev.end,prev.end+0.15])});drawWave(VZ,bad)}}
-async function one(run,slot){const r=await fetch('/synth',{method:'POST',body:JSON.stringify({run:run+'/ttl.pt',text:text.value,ref:ref.value,steps:+steps.value,cfg:+cfg.value,dur:+dur.value})});
+async function one(run,slot,st,cf){const r=await fetch('/synth',{method:'POST',body:JSON.stringify({run:run,text:text.value,ref:ref.value,steps:st,cfg:cf,dur:+dur.value})});
 if(!r.ok){slot.innerHTML='<pre>'+await r.text()+'</pre>';return}const blob=await r.blob();slot.innerHTML=btn(URL.createObjectURL(blob))+' <pre style="display:inline">'+decodeURIComponent(r.headers.get('x-info'))+'</pre>';durs();
 const w=await (await fetch('/wer',{method:'POST',headers:{'X-Text':encodeURIComponent(text.value)},body:blob})).json();slot.innerHTML+=`<pre>${w.error?'wer failed '+w.error:`wer ${w.wer.toFixed(2)} · whisper: ${w.heard}`}</pre>`}
 async function cmp(){cmpb.disabled=true;cmpout.innerHTML=`<div><b>A</b> ${ma.options[ma.selectedIndex].text}<div id=ca>generating...</div></div><div><b>B</b> ${mb.options[mb.selectedIndex].text}<div id=cb>generating...</div></div>`;
-await one(ma.value,ca);await one(mb.value,cb);cmpb.disabled=false}
+await one(ma.value,ca,+sa.value,+ca_cfg.value);await one(mb.value,cb,+sb.value,+cb_cfg.value);cmpb.disabled=false}
 async function go(){const b=document.querySelector('button');b.disabled=true;out.textContent='generating...';
 const r=await fetch('/synth',{method:'POST',body:JSON.stringify({run:ckpt.value,text:text.value,ref:ref.value,steps:+steps.value,cfg:+cfg.value,dur:+dur.value})});
 if(!r.ok){out.textContent=await r.text();b.disabled=false;return}
@@ -235,11 +246,60 @@ def whisper(data, words=False):
     return urllib.request.urlopen(req, timeout=120).read().decode()
 
 
+_ov_cache = {}
+
+
+def _hours(prep):
+    """(hours, clips, speakers) of a prep dir's train.jsonl, cached by mtime."""
+    f = os.path.join(prep, "train.jsonl")
+    if not os.path.exists(f): return None
+    mt = os.path.getmtime(f)
+    if _ov_cache.get(f, (None,))[0] != mt:
+        rows = [json.loads(l) for l in open(f)]
+        _ov_cache[f] = (mt, round(sum(r.get("seconds", 0) for r in rows) / 3600, 1), len(rows), len({r.get("speaker") for r in rows}))
+    return _ov_cache[f][1:]
+
+
+def _elapsed(log):
+    """last 'XhYYm' / 'XXmYYs' prefix in progress.log -> seconds, string."""
+    last = ""
+    for line in open(log, errors="replace"):
+        m = re.match(r"(\d+)h(\d+)m|(\d+)m(\d+)s", line)
+        if m: last = m
+    if not last: return 0, ""
+    g = last.groups(); sec = int(g[0]) * 3600 + int(g[1]) * 60 if g[0] else int(g[2]) * 60 + int(g[3])
+    return sec, last.group(0)
+
+
+def overview():
+    """One row per training run (progress.log present): experiment, run, wall time, data, init, question. Sorted by wall time, longest first."""
+    rows, seen = [], set()
+    for log in glob.glob(os.path.join(HERE, "*", "[0-9][0-9][0-9]-*", "runs", "*", "progress.log")):
+        rd = os.path.dirname(log); real = os.path.realpath(rd)
+        if real in seen or "todelete" in rd or "smoke" in rd or os.path.islink(rd): continue  # symlinked runs (015 teacher -> 014) are listed once, at their owner
+        seen.add(real); exp = os.path.relpath(os.path.dirname(os.path.dirname(rd)), HERE)
+        cfgf = os.path.join(rd, "config.effective.json"); cc = json.load(open(cfgf)) if os.path.exists(cfgf) else {}
+        d = cc.get("data", {}); prep = d.get("prep_dir", ""); h = None
+        for base in (os.path.join(HERE, exp), os.path.join(HERE, exp, "..")):  # configs written before the 2026-09-09 regrouping are one level short
+            h = h or (prep and _hours(os.path.join(base, prep)))
+        init = (cc.get("ttl", {}) or {}).get("init_from") or "scratch"
+        q = ""
+        rf = os.path.join(HERE, exp, "README.md")
+        if os.path.exists(rf):
+            m = re.search(r"\*\*Short\.\*\*\s*(.+)", open(rf).read()) or re.search(r"\*\*(?:Question|Goal)\.\*\*\s*(.+)", open(rf).read()); q = m.group(1) if m else ""  # one plain line per experiment README
+        sec, el = _elapsed(log)
+        rows.append({"exp": exp, "run": os.path.basename(rd), "wall_s": sec, "wall": el, "data": os.path.basename(prep.rstrip("/")) if prep else "", "hours": h and h[0], "clips": h and h[1], "speakers": h and h[2], "init": (lambda m: f"{m.group(1)}/{m.group(2)}" if m else init)(re.search(r"(\d{3})-[^/]*/runs/([^/]+)", init)), "question": q})
+    return sorted(rows, key=lambda r: -r["wall_s"])
+
+
 class H(BaseHTTPRequestHandler):
     def do_GET(self):
+        if self.path == "/overview":
+            body = json.dumps(overview()).encode()
+            self.send_response(200); self.send_header("Content-Type", "application/json"); self.end_headers(); self.wfile.write(body); return
         if self.path == "/refs":  # voices: 007 reference clips + voices/*.pt
-            r = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "007-zero-shot-voice", "config.json")))["refs"]["refs"]
-            R = {k: os.path.abspath(os.path.join(HERE, "007-zero-shot-voice", v)) for k, v in r.items()}
+            r = json.load(open(os.path.join(HERE, "30-voices", "007-zero-shot-voice", "config.json")))["refs"]["refs"]
+            R = {k: os.path.abspath(os.path.join(HERE, "30-voices", "007-zero-shot-voice", v)) for k, v in r.items()}
             R.update({os.path.basename(f)[:-3]: f for f in sorted(glob.glob(os.path.join(HERE, "voices", "*.pt")))})  # voicepacks made by voice.py
             body = json.dumps(R).encode()
             self.send_response(200); self.send_header("Content-Type", "application/json"); self.end_headers(); self.wfile.write(body); return
@@ -257,10 +317,10 @@ class H(BaseHTTPRequestHandler):
             if not os.path.exists(f): f = os.path.join(q["run"].replace("%2F", "/"), "samples", q["f"].split("_", 1)[1])  # 002 layout: step_XXXXXX.wav
             if not os.path.exists(f): self.send_response(404); self.end_headers(); return
             self.send_response(200); self.send_header("Content-Type", "audio/wav"); self.end_headers(); self.wfile.write(open(f, "rb").read()); return
-        runs = sorted([r for r in glob.glob(P(p["runs_glob"])) if "todelete" not in r and "smoke" not in r and re.match(r"(ttl|best)(_.*)?\.pt$", os.path.basename(r))], key=os.path.getmtime, reverse=True)
-        views = "".join(f"<option value='{v}'>{os.path.relpath(v, P('..'))}</option>" for v in dict.fromkeys(os.path.dirname(r) for r in runs))
-        s = c["synth"]
-        body = (HTML % (views, c["ttl"]["sample_text"], P(s["ref_clip"]), s["steps"], s["cfg"], s["duration_scale"], views, views)).encode()
+        runs = sorted([r for r in glob.glob(P(p["runs_glob"]), recursive=True) if "todelete" not in r and "smoke" not in r and re.match(r"(ttl|best)(_.*)?\.pt$", os.path.basename(r))], key=os.path.getmtime, reverse=True)
+        views = "".join(f"<option value='{v}'>{os.path.relpath(v, P('../..'))}</option>" for v in dict.fromkeys(os.path.dirname(r) for r in runs))
+        s = c["synth"]; files = "".join(f"<option value='{r}'>{os.path.relpath(r, P('../..'))}</option>" for r in runs)
+        body = (HTML % (views, c["ttl"]["sample_text"], P(s["ref_clip"]), s["steps"], s["cfg"], s["duration_scale"], files, s["steps"], s["cfg"], files, s["steps"], s["cfg"], p["overview_rows"], p["overview_rows"], p["overview_rows"])).encode()
         self.send_response(200); self.send_header("Content-Type", "text/html; charset=utf-8"); self.end_headers(); self.wfile.write(body)
 
     def do_POST(self):
@@ -280,7 +340,7 @@ class H(BaseHTTPRequestHandler):
             zref, rmask = S.style(q["ref"]) if hasattr(S, "style") else S.style_from_wav(q["ref"])
             t0 = time.time(); wav, dur = S(q["text"], zref, rmask, steps=q["steps"], cfg=q["cfg"], duration_scale=q["dur"]); el = time.time() - t0
             buf = io.BytesIO(); sf.write(buf, wav, c["data"]["sample_rate"], format="WAV")
-            info = json.dumps({"seconds": round(dur, 2), "gen_s": round(el, 2), "rtf": round(el / max(dur, 1e-6), 2), "device": S.dev})
+            info = json.dumps({"ckpt": os.path.relpath(q["run"], P("../..")), "steps": q["steps"], "cfg": q["cfg"], "seconds": round(dur, 2), "gen_s": round(el, 2), "rtf": round(el / max(dur, 1e-6), 2), "device": S.dev})
             self.send_response(200); self.send_header("Content-Type", "audio/wav"); self.send_header("X-Info", info); self.end_headers(); self.wfile.write(buf.getvalue())
         except Exception as ex:
             self.send_response(500); self.end_headers(); self.wfile.write(str(ex).encode())

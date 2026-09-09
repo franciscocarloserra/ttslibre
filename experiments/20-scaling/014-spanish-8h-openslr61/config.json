@@ -1,0 +1,219 @@
+{
+ "data": {
+  "prep_dir": "../../../datasets/openslr61/prep",
+  "sample_rate": 24000,
+  "n_fft": 1024,
+  "hop": 256,
+  "n_mels": 100,
+  "mel_fmin": 0,
+  "mel_fmax": 12000,
+  "log_clamp": 1e-05,
+  "min_seconds": 1.0,
+  "max_seconds": 12.0,
+  "val_fraction": 0.05,
+  "seed": 0,
+  "speaker": "",
+  "max_utts": 0,
+  "max_clip_seconds": 0,
+  "raw_root": "../../../datasets/openslr61",
+  "latent_stats": "../../../datasets/libritts-r/prep/latent_stats.pt",
+  "manifest_dir": "../../../datasets/manifests",
+  "prep_workers": 12,
+  "index_files": [
+   "line_index_female.tsv",
+   "line_index_male.tsv"
+  ],
+  "source": "OpenSLR 61 (Google crowdsourced Argentinian Spanish)",
+  "license": "CC BY-SA 4.0",
+  "manifest": "openslr61-es-ar.jsonl",
+  "base_vocab": "../../../datasets/libritts-r/prep/vocab.json"
+ },
+ "latent": {
+  "dim": 24,
+  "compress": 6
+ },
+ "ae": {
+  "hidden": 256,
+  "intermediate": 1024,
+  "kernel": 7,
+  "enc_layers": 6,
+  "dec_layers": 6,
+  "epochs": 40,
+  "batch": 16,
+  "crop_frames": 384,
+  "lr": 0.0005,
+  "amp": true,
+  "log_every": 50
+ },
+ "ttl": {
+  "char_dim": 128,
+  "text_hidden": 128,
+  "text_intermediate": 512,
+  "text_conv_layers": 6,
+  "text_conv_dilations": [
+   1,
+   1,
+   2,
+   2,
+   4,
+   4
+  ],
+  "text_attn_layers": 4,
+  "text_attn_heads": 4,
+  "ref_hidden": 128,
+  "ref_intermediate": 512,
+  "ref_conv_layers": 6,
+  "n_style": 50,
+  "vf_hidden": 256,
+  "vf_intermediate": 1024,
+  "vf_blocks": 4,
+  "vf_dilations": [
+   1,
+   2,
+   4,
+   8
+  ],
+  "vf_plain_layers": 2,
+  "vf_last_layers": 4,
+  "vf_heads": 4,
+  "kernel": 5,
+  "time_dim": 64,
+  "sigma_min": 1e-08,
+  "p_uncond": 0.0,
+  "ref_min_seconds": 0.5,
+  "ref_max_seconds": 4.0,
+  "ref_max_fraction": 0.5,
+  "batch_expand": 8,
+  "steps": 400000,
+  "batch": 16,
+  "max_seconds": 8.0,
+  "lr": 0.0005,
+  "lr_halve_every": 60000,
+  "warmup": 500,
+  "amp": true,
+  "grad_clip": 5.0,
+  "log_every": 25,
+  "ckpt_every": 3000,
+  "val_every": 10000,
+  "sample_every": 3000,
+  "sample_text": "El pijama de rayas es azul",
+  "sample_steps": 16,
+  "sample_cfg": 1.0,
+  "max_minutes": 480,
+  "sample_heldout_n": 3,
+  "stop_wer_window": 3,
+  "init_from": "",
+  "fail_after_minutes": 100000,
+  "fail_wer": 9,
+  "sample_extra": [
+   [
+    "novel1",
+    "Ma\u00f1ana vamos a la playa con los chicos."
+   ],
+   [
+    "novel2",
+    "El perro corre por el parque todas las tardes."
+   ],
+   [
+    "english",
+    "Please call the doctor before noon tomorrow."
+   ]
+  ],
+  "stop_wer": 0.2,
+  "keep_checkpoints": 8,
+  "lang": "es"
+ },
+ "dp": {
+  "char_dim": 64,
+  "intermediate": 256,
+  "conv_layers": 6,
+  "attn_layers": 2,
+  "attn_heads": 2,
+  "ref_layers": 4,
+  "n_style": 8,
+  "style_dim": 16,
+  "hidden": 128,
+  "loss_weight": 0.1
+ },
+ "synth": {
+  "steps": 16,
+  "cfg": 2.0,
+  "duration_scale": 1.0,
+  "cpu_threads": 8,
+  "ref_clip": "../../../datasets/openslr61/arf_00295_00000740990.wav"
+ },
+ "eval": {
+  "sentences": "sentences.txt",
+  "whisper_url": "http://localhost:6969/transcribe",
+  "whisper_token_env": "WHISPER_TOKEN",
+  "tts_url": "http://localhost:6971/tts",
+  "tts_token_env": "TTS_TOKEN",
+  "kokoro_voice": "af_heart",
+  "supertonic_voice": "F5",
+  "out_dir": "runs/eval",
+  "samples_dir": "samples",
+  "n_samples": 3,
+  "ogg_quality": 3,
+  "val_draws": 3,
+  "val_max": 0,
+  "val_checkpoints": {
+   "012": "../../20-scaling/012-english-235h-overnight/runs/overnight/ttl_6h21m_step138000.pt",
+   "014": "runs/es8h/ttl.pt",
+   "014best": "runs/es8h/best.pt"
+  },
+  "val_out": "runs/evalval"
+ },
+ "smoke": {
+  "ae_epochs": 1,
+  "ttl_steps": 10,
+  "batch": 4,
+  "max_seconds": 8.0
+ },
+ "panel": {
+  "port": 7807,
+  "device": "cuda",
+  "cpu_threads": 8,
+  "runs_glob": "../../*/*/runs/**/*.pt",
+  "viz": {
+   "n_fft": 1024,
+   "hop": 256,
+   "n_mels": 128,
+   "fmax_hz": 8000,
+   "wave_px": 1200,
+   "whisper_words_query": "?words=1"
+  },
+  "hot_seconds": 120,
+  "overview_rows": 5
+ },
+ "overnight": {
+  "end_hour": 4,
+  "end_minute": 0
+ },
+ "style": {
+  "test_checkpoint": "../../20-scaling/011-continue-4h-low-lr/runs/cont4h/ttl.pt",
+  "mix_t": 0.5
+ },
+ "card": {
+  "checkpoint": "runs/es8h/ttl_5h04m_step105000.pt",
+  "voices": {
+   "arf_06136": "arf_06136_01550408135.wav",
+   "arf_08784": "arf_08784_00335341698.wav",
+   "arf_00295": "arf_00295_00672609549.wav",
+   "arm_08784": "arm_08784_01797514024.wav",
+   "arm_06136": "arm_06136_01088379245.wav",
+   "arm_00610": "arm_00610_00592700854.wav"
+  },
+  "val_ids": [
+   "arf_09334_01882555954",
+   "arf_03853_01123454408",
+   "arm_05223_01376009261",
+   "arf_00295_01054942221"
+  ],
+  "sentences": "sentences.txt",
+  "draws": 3,
+  "max_wer": 0.1,
+  "steps": 16,
+  "cfg": 2.0,
+  "out_dir": "runs/card"
+ }
+}

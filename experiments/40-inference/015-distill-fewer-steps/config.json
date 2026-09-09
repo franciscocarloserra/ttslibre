@@ -1,0 +1,142 @@
+{
+  "base_config": "../../20-scaling/014-spanish-8h-openslr61/config.json",
+  "teacher": "runs/teacher/ttl_5h04m_step105000.pt",
+  "ref_clip": "../../../datasets/openslr61/arf_00295_00000740990.wav",
+  "baseline": {
+    "sentences": 20,
+    "draws": 3,
+    "grid": [
+      [
+        16,
+        2.0
+      ],
+      [
+        16,
+        1.0
+      ],
+      [
+        8,
+        2.0
+      ],
+      [
+        8,
+        1.0
+      ],
+      [
+        4,
+        2.0
+      ],
+      [
+        4,
+        1.0
+      ],
+      [
+        2,
+        1.0
+      ]
+    ],
+    "seed": 0,
+    "out": "runs/baseline",
+    "max_minutes": 30
+  },
+  "distill": {
+    "rounds": [
+      [
+        16,
+        8
+      ],
+      [
+        8,
+        4
+      ]
+    ],
+    "teacher_cfg": 2.0,
+    "batch": "auto",
+    "lr": 0.0001,
+    "max_minutes_per_round": 60,
+    "keep_checkpoints": 4,
+    "probe_every": 500,
+    "probe_steps": 4,
+    "sample_heldout_n": 3,
+    "success": {
+      "student_steps": 4,
+      "student_cfg": 1.0,
+      "teacher_steps": 16,
+      "teacher_cfg": 2.0,
+      "max_wer_delta": 0.05,
+      "window": 2
+    },
+    "out": "runs/distill",
+    "log_every": 25,
+    "max_steps": 0,
+    "smoke": {
+      "rounds": [
+        [
+          16,
+          8
+        ]
+      ],
+      "batch": "auto",
+      "probe_every": 3,
+      "max_steps": 6,
+      "max_minutes_per_round": 5,
+      "log_every": 1,
+      "sample_heldout_n": 1,
+      "calib_batches": [
+        4,
+        8
+      ]
+    },
+    "calib_batches": [
+      32,
+      64,
+      128,
+      256,
+      512
+    ],
+    "calib_steps": 3,
+    "calib_vram_fraction": 0.8,
+    "calib_min_gain": 0.1
+  },
+  "eval": {
+    "run": "",
+    "grid": [
+      [
+        4,
+        1.0
+      ],
+      [
+        8,
+        1.0
+      ],
+      [
+        2,
+        1.0
+      ]
+    ],
+    "out": "runs/student_eval",
+    "max_minutes": 20
+  },
+  "baseline_equal": {
+    "grid": [
+      [
+        2,
+        2.0
+      ],
+      [
+        4,
+        2.0
+      ],
+      [
+        1,
+        2.0
+      ],
+      [
+        2,
+        1.0
+      ]
+    ],
+    "out": "runs/baseline_equal",
+    "max_minutes": 20
+  }
+}

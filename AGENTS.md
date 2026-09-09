@@ -4,11 +4,11 @@ Read before working in this repo. README.md is the pitch. This file is the opera
 
 ## Goal of the prototype phase
 
-A minimal, working, end-to-end TTS training pipeline that we own: data prep, train, export, evaluate. Not good yet. Working. Built as `experiments/001-*/`.
+A minimal, working, end-to-end TTS training pipeline that we own: data prep, train, export, evaluate. Not good yet. Working. Built as `experiments/10-proof-of-concept/001-*/`.
 
 ## Repo structure
 
-- `experiments/NNN-<slug>/` : every experiment in its own numbered directory with a `README.md` (goal, config, result, verdict), a `config.json` with every numeric knob, and its scripts. Scratch, downloads and checkpoints under `<exp>/runs/` and `<exp>/data/`, git-ignored. **Nothing runs outside an experiment directory.**
+- `experiments/<group>/NNN-<slug>/` : every experiment in its own numbered directory with a `README.md` (goal, config, result, verdict), a `config.json` with every numeric knob, and its scripts. Scratch, downloads and checkpoints under `<exp>/runs/` and `<exp>/data/`, git-ignored. **Nothing runs outside an experiment directory.**
 - `datasets/` : symlink to `/media/usuario/hdd-unencrypted/ttslibre/datasets/`, one subdir per source (`libritts-r/raw`, `libritts-r/prep`, ...) plus `manifests/` (provenance, no audio). The single place where data lives. Git-ignored. Experiments reference it by relative path in their `config.json`. Polished datasets and manifests are published to Hugging Face (namespace `ttslibre`, nothing uploaded yet) from here.
 - `docs/references/` : upstream implementations as submodules. Read-only.
 - `docs/` : sourced facts (`ARCHITECTURES.md`, `DATASETS.md`, `REFERENCES.md`), coordination rules. `docs/research/` is a local-only, git-ignored scratch of raw fetched sources so nothing is looked up twice.
@@ -35,7 +35,7 @@ Secondary, always reported: parameter count, real-time factor on CPU (single sen
 - Never touch PipeWire, WirePlumber or PulseAudio.
 - Never delete files. Move to `todelete/`.
 - Ports for anything ephemeral: 78xx.
-- Checkpoints, logs and samples go under `experiments/NNN-*/runs/` (symlink to `/media/usuario/hdd-unencrypted/ttslibre/NNN/runs/`, git-ignored). Root disk has ~5 GB free: nothing large on it.
+- Checkpoints, logs and samples go under `experiments/<group>/NNN-*/runs/` (symlink to `/media/usuario/hdd-unencrypted/ttslibre/NNN/runs/`, git-ignored). Root disk has ~5 GB free: nothing large on it.
 - TensorBoard over all experiments, port 7806: `./venv/bin/python -m tensorboard.main --logdir_spec 001:<001 runs>,002:<002 runs> --port 7806 --reload_interval 5`. Per run: scalars `train/*`, `val/*`, `sample/wer`; audio `sample/original`, `sample/generated`; text `sample/text`, `sample/whisper`.
 
 ## Local tools
@@ -48,10 +48,10 @@ Secondary, always reported: parameter count, real-time factor on CPU (single sen
 ## Deliverables of the prototype phase
 
 0. `docs/LICENSES.md`: license audit (LJSpeech, Kokoro-82M output, Supertonic 3 output) before any synthetic data is generated.
-1. `experiments/001-*/README.md`: what was built, how to run it, results table (WER, params, RTF, VRAM) for prototype vs Kokoro vs Supertonic 3, and what failed.
-2. `experiments/001-*/config.json` with every knob.
-3. `experiments/001-*/prepare.py`, `train.py`, `synth.py`, `export.py`, `eval.py`. Small files, stdlib plus torch plus what is strictly needed.
-4. A few synthesized samples under `experiments/001-*/samples/` (small, git-tracked, ogg or mp3).
+1. `experiments/10-proof-of-concept/001-*/README.md`: what was built, how to run it, results table (WER, params, RTF, VRAM) for prototype vs Kokoro vs Supertonic 3, and what failed.
+2. `experiments/10-proof-of-concept/001-*/config.json` with every knob.
+3. `experiments/10-proof-of-concept/001-*/prepare.py`, `train.py`, `synth.py`, `export.py`, `eval.py`. Small files, stdlib plus torch plus what is strictly needed.
+4. A few synthesized samples under `experiments/10-proof-of-concept/001-*/samples/` (small, git-tracked, ogg or mp3).
 5. Local commits with clear messages. No push.
 
 ## Style
@@ -73,4 +73,4 @@ Ultraminimal. Only what the requested step needs. English everywhere. Report fac
 Every training run keeps at least 4 partial checkpoints spread over its time budget (`ttl.keep_checkpoints`, weights only, `runs/<run>/ttl_<elapsed>_step<N>.pt`), plus `best.pt` (best held-out WER) and `ttl.pt` (latest, resumable). Reason: 006 stabilized at 3 h of a 7 h run and the 3 h weights were gone; partial checkpoints let the next experiment start from any point of the curve.
 
 ## Experiment names (from the user)
-Directory names state the question the experiment answers, in plain words: `NNN-<question-as-a-slug>` (e.g. `006-generalize-40-speakers`). No cryptic names. Renamed on 2026-09-06; run dirs on the HDD keep the number only (`/media/usuario/hdd-unencrypted/ttslibre/NNN/runs`).
+Directory names state the question the experiment answers, in plain words: `NNN-<question-as-a-slug>` (e.g. `006-generalize-40-speakers`), grouped by topic under `experiments/<group>/` (see `experiments/README.md`; regrouped 2026-09-09, numbering stays global and is never reused). No cryptic names. Renamed on 2026-09-06; run dirs on the HDD keep the number only (`/media/usuario/hdd-unencrypted/ttslibre/NNN/runs`).

@@ -83,7 +83,7 @@ Sources per column:
 
 ## Recommendation for the bake-off
 
-Run three candidates on the same 100 clean hours, same text set, same eval script (`experiments/001-*/eval.py`):
+Run three candidates on the same 100 clean hours, same text set, same eval script (`experiments/10-proof-of-concept/001-*/eval.py`):
 
 1. **Supertonic lineage** (experiment 001, already in progress). Simplest data pipeline, character input, the project's stated preference. Weakest published control surface.
 2. **StyleTTS 2 decoder-only (Kokoro recipe)** with iSTFTNet. Best expressiveness levers and the cheapest known path to Kokoro-level intelligibility. Needs misaki (Apache) not espeak-ng, and its own aligner and pitch extractor retrained on the CC0 data.

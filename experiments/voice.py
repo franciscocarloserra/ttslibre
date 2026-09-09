@@ -7,7 +7,7 @@ Requires an experiment >= 013 for style/mix (TTL.style)."""
 import json, os, re, sys, time
 HERE = os.path.dirname(os.path.abspath(__file__)); VOICES = os.path.join(HERE, "voices")
 argv = sys.argv[1:]
-EXP = argv[argv.index("--exp") + 1] if "--exp" in argv else sorted(d for d in os.listdir(HERE) if re.match(r"\d{3}-", d))[-1]
+EXP = argv[argv.index("--exp") + 1] if "--exp" in argv else sorted(os.path.relpath(d, HERE) for d in glob.glob(os.path.join(HERE, "*", "[0-9][0-9][0-9]-*")) if os.path.isdir(d))[-1]  # group/NNN-slug
 os.chdir(os.path.join(HERE, EXP)); sys.path.insert(0, os.getcwd())
 import torch, soundfile as sf
 from common import load_config, P
@@ -35,7 +35,7 @@ elif argv[0] in ("style", "mix"):
     torch.save({k: v.cpu() for k, v in st.items()} | {"checkpoint": os.path.abspath(run), "made_from": argv[1:-1] if argv[0] == "mix" else [name]}, os.path.join(VOICES, name.replace(".style", "") + ".style.pt"))
     print(f"voices/{name.replace('.style', '')}.style.pt  style {tuple(st['style'].shape)}  dp {tuple(st['dp'].shape)}  checkpoint {run}")
 elif argv[0] == "test":
-    name = argv[1]; v = json.load(open(os.path.join(HERE, "007-zero-shot-voice", "config.json")))["refs"]
+    name = argv[1]; v = json.load(open(os.path.join(HERE, "30-voices", "007-zero-shot-voice", "config.json")))["refs"]
     zref, rmask = S.style(os.path.join(VOICES, name + ".pt"))
     import re as _re, subprocess, urllib.request
     from num2words import num2words
