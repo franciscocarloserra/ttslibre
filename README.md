@@ -12,6 +12,8 @@ https://github.com/user-attachments/assets/5b9e8570-dd0d-45d7-b831-092cc7d8bfed
 
 **Current checkpoint: v0.1.2** (English PoC, 19.8M params, 177 h LibriTTS-R, whole-val Whisper WER 0.23): [FranciscoCarlosErra/ttslibre-poc-en](https://huggingface.co/FranciscoCarlosErra/ttslibre-poc-en) — cold-start and in-memory inference instructions in the model card. Rough, as promised in the plan.
 
+**Rioplatense Spanish PoC** (experiment 014, 19.8M params, 8 h OpenSLR 61 es-AR, from scratch, CC BY-SA 4.0): [FranciscoCarlosErra/ttslibre-poc-es-ar](https://huggingface.co/FranciscoCarlosErra/ttslibre-poc-es-ar) — 48 samples with 6 voices and their Whisper WER in the model card.
+
 ## The deal, in one table
 
 | | Kokoro-82M | Supertonic 3 | **TTSLibre** |
@@ -74,7 +76,7 @@ State of the art. Voice cloning from seconds of audio. Emotion control. Anything
 2. **Bake-off.** Two or three candidate architectures on those 100 hours. One metric. Results public. Winner sets the architecture.
 3. **First checkpoint.** Full English run. It will be rough. Ship it anyway. → v0.1.2 shipped (experiment 012).
 4. **Voice tool.** Style-vector editor on top of the checkpoint.
-5. **Languages.** Spanish first, then whatever contributors bring.
+5. **Languages.** Spanish first, then whatever contributors bring. → Rioplatense PoC shipped (experiment 014).
 
 Worst case this ends as a distillation of Kokoro and Supertonic with a public recipe, and that is still something nobody has published. Best case is a fully human-licensed dataset and a model anyone can ship.
 
