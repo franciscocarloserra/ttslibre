@@ -91,9 +91,9 @@ button{background:#2a6;color:#000;cursor:pointer}button.play{width:5.5em;padding
 .bw{color:#f66;text-decoration:underline}.dl{color:#f66;text-decoration:line-through}.bc{background:#a22;color:#fff;border-radius:2px}.dim{color:#777}
 table{width:100%%;font-size:13px;border-collapse:collapse}td{padding:2px 4px;vertical-align:middle}svg{background:#181818;border-radius:4px;display:block;width:100%%}</style>
 <div class=cols><div>
-<h3>run</h3><select id=view onchange="load();ckpts()">%s</select> checkpoint <select id=ckpt></select>
+<h3>Run</h3><select id=view onchange="load();ckpts()">%s</select> checkpoint <select id=ckpt></select>
 <svg id=chart viewBox="0 0 700 220"></svg>
-<h3>generate</h3>
+<h3>Generate</h3>
 voice <select id=refsel onchange="ref.value=this.value"></select>
 <textarea id=text rows=3 onkeydown="if(event.key=='Enter'&&!event.shiftKey){event.preventDefault();go()}">%s</textarea>
 <button onclick="go()">generate</button>
@@ -109,14 +109,14 @@ A <select id=ma>%s</select> steps <input id=sa value="%d"> cfg <input id=ca_cfg 
 B <select id=mb>%s</select> steps <input id=sb value="%d"> cfg <input id=cb_cfg value="%s">
 <button id=cmpb onclick="cmp()">generate with both</button>
 <div id=cmpout></div></details>
-<h3>training runs, longest first</h3><div id=ov></div>
+<h3>Training runs</h3><div id=ov></div>
 </div><div><div id=rounds></div></div></div>
 <script>
 let cur=null;const AU=new Audio();AU.onended=()=>{if(cur){cur.textContent='▶ '+cur.dataset.d;cur=null}};
 function pl(b){if(cur===b){AU.pause();AU.currentTime=0;b.textContent='▶ '+b.dataset.d;cur=null;return}if(cur){cur.textContent='▶ '+cur.dataset.d}cur=b;AU.src=b.dataset.src;AU.play();b.textContent='■ '+b.dataset.d}
 function btn(src){return `<button class=play data-src="${src}" data-d="…" onclick="pl(this)">▶ …</button>`}
 const DUR={};function durs(){for(const b of document.querySelectorAll('button.play[data-d="…"]')){const k=b.dataset.src;if(DUR[k]){b.dataset.d=DUR[k];b.textContent='▶ '+DUR[k];continue}if(DUR[k]===null)continue;DUR[k]=null;const a=new Audio();a.preload='metadata';a.onloadedmetadata=()=>{DUR[k]=a.duration.toFixed(1)+'s';durs()};a.src=k}}
-const COL={train:'#6c6',knownwords:'#fc6',heldout1:'#f66',heldout2:'#c6f'};
+const wc=w=>{const x=Math.min(1,Math.max(0,w));return `hsl(${120*(1-x)},70%,50%)`};const COL={train:'#6c6',knownwords:'#fc6',heldout1:'#f66',heldout2:'#c6f'};
 const el=(t,a)=>{const e=document.createElementNS('http://www.w3.org/2000/svg',t);for(const k in a)e.setAttribute(k,a[k]);return e};
 async function load(){const j=await (await fetch('/rounds?run='+encodeURIComponent(view.value))).json();const d=j.rounds,S=j.sentences;
 const W=700,H=220,L=40,B=24,mx=Math.max(1,...d.map(r=>r.step)),my=Math.max(1,...d.map(r=>r.wer));
@@ -127,10 +127,10 @@ names.forEach((n,i)=>{c.append(el('polyline',{points:d.filter(r=>r.name==n).map(
 const t=el('text',{x:L+10+i*130,y:14,fill:COL[n]||'#aaa','font-size':12});t.textContent=n+' (wer)';c.append(t)});
 const EL={};for(const r of d)if(r.elapsed)EL[r.step]=r.elapsed;const ks=Object.keys(EL).map(Number).sort((a,b)=>a-b);
 for(let i=1;i<=5;i++){const s=Math.round(mx*i/5);const k=ks.length?ks.reduce((p,q)=>Math.abs(q-s)<Math.abs(p-s)?q:p):s;c.append(el('line',{x1:X(s),x2:X(s),y1:H-B,y2:H-B+4,stroke:'#666'}));const t=el('text',{x:X(s),y:H-6,fill:'#888','font-size':11,'text-anchor':'end'});const hrs=e=>{const m=/(\d+)h(\d+)m|(\d+)m(\d+)s/.exec(e||'');return m?(m[1]?+m[1]+m[2]/60:m[3]/60).toFixed(1)+' h':''};t.textContent=ks.length?hrs(EL[k]):'step '+s;c.append(t)}
-const steps=[...new Set(d.map(r=>r.step))].sort((a,b)=>b-a);const N=steps.length;let h='<h3>rounds, newest first</h3>';
+const steps=[...new Set(d.map(r=>r.step))].sort((a,b)=>b-a);const N=steps.length;let h='<h3>Rounds</h3>';
 const legend=Object.entries(S).map(([n,x])=>`<div style="color:${COL[n]||'#aaa'}"><b>${n}</b> = ${x.label}: <i>${x.text}</i>${x.original?` ${btn(`/wav?run=x&f=x&orig=${encodeURIComponent(x.original)}`)} (original recording)`:''}</div>`).join('');
 steps.forEach((s,i)=>{const rs=d.filter(r=>r.step==s);h+=`<div style="border:1px solid #333;border-radius:6px;padding:.5em;margin:.6em 0"><div style="color:#aaa;margin-bottom:.3em">round ${N-i} of ${N} &middot; step ${s}${rs[0].elapsed?' &middot; '+rs[0].elapsed+' into the run':''}</div><table>`;
-for(const r of rs) h+=`<tr><td style="color:${COL[r.name]||'#aaa'};white-space:nowrap;width:9em"><b>${r.name}</b><br>wer ${r.wer.toFixed(2)}</td><td style="width:6em">${btn(`/wav?run=${encodeURIComponent(view.value)}&f=${r.name}_step_${String(s).padStart(6,'0')}.wav`)}</td><td style="color:#999">input: <span style="color:#ddd">${(S[r.name]||{}).text||''}</span><br>whisper: <span style="color:#ddd">${r.heard}</span></td></tr>`;h+='</table></div>'});
+for(const r of rs) h+=`<tr><td style="color:${COL[r.name]||'#aaa'};white-space:nowrap;width:9em"><b>${r.name}</b><br><span style="color:${wc(r.wer)}">wer ${r.wer.toFixed(2)}</span></td><td style="width:6em">${btn(`/wav?run=${encodeURIComponent(view.value)}&f=${r.name}_step_${String(s).padStart(6,'0')}.wav`)}</td><td style="color:#999">input: <span style="color:#ddd">${(S[r.name]||{}).text||''}</span><br>whisper: <span style="color:#ddd">${r.heard}</span></td></tr>`;h+='</table></div>'});
 h+='<details><summary>what the probe names mean</summary>'+legend+'</details>';
 const rd=document.getElementById('rounds');if(rd.dataset.h!==h){rd.innerHTML=h;rd.dataset.h=h;durs()}}
 async function ckpts(){const L=await (await fetch('/ckpts?run='+encodeURIComponent(view.value))).json();const cur=ckpt.value;ckpt.innerHTML=L.map(x=>`<option value='${x.path}'>${x.name} (${x.time})</option>`).join('');if([...ckpt.options].some(o=>o.value===cur))ckpt.value=cur}
