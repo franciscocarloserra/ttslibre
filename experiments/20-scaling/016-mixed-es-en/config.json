@@ -145,7 +145,7 @@
  },
  "smoke": {
   "ae_epochs": 1,
-  "ttl_steps": 400,
+  "ttl_steps": 100,
   "batch": 32,
   "max_seconds": 8.0
  },
