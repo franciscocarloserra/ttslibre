@@ -77,7 +77,7 @@ button{background:#2a6;color:#000;cursor:pointer}button.play{width:5.5em;padding
 .bw{color:#f66;text-decoration:underline}.dl{color:#f66;text-decoration:line-through}.bc{background:#a22;color:#fff;border-radius:2px}.dim{color:#777}
 table{width:100%%;font-size:13px;border-collapse:collapse}td{padding:2px 4px;vertical-align:middle}svg{background:#181818;border-radius:4px;display:block;width:100%%}</style>
 <div class=cols><div>
-<h3>run</h3><select id=view onchange="load()">%s</select>
+<h3>run</h3><select id=view onchange="load();ckpts()">%s</select> checkpoint <select id=ckpt></select>
 <svg id=chart viewBox="0 0 700 220"></svg>
 <h3>generate</h3>
 voice <select id=refsel onchange="ref.value=this.value"></select>
@@ -116,7 +116,8 @@ h+='<details open><summary>the sentences</summary>'+legend+'</details>';
 steps.forEach((s,i)=>{const rs=d.filter(r=>r.step==s);h+=`<div style="border:1px solid #333;border-radius:6px;padding:.5em;margin:.6em 0"><div style="color:#aaa;margin-bottom:.3em">round ${N-i} of ${N} &middot; step ${s}${rs[0].elapsed?' &middot; '+rs[0].elapsed+' into the run':''}</div><table>`;
 for(const r of rs) h+=`<tr><td style="color:${COL[r.name]||'#aaa'};white-space:nowrap;width:9em"><b>${r.name}</b><br>wer ${r.wer.toFixed(2)}</td><td style="width:6em">${btn(`/wav?run=${encodeURIComponent(view.value)}&f=${r.name}_step_${String(s).padStart(6,'0')}.wav`)}</td><td style="color:#999">input: <span style="color:#ddd">${(S[r.name]||{}).text||''}</span><br>whisper: <span style="color:#ddd">${r.heard}</span></td></tr>`;h+='</table></div>'});
 const rd=document.getElementById('rounds');if(rd.dataset.h!==h){rd.innerHTML=h;rd.dataset.h=h;durs()}}
-load();setInterval(load,15000);
+async function ckpts(){const L=await (await fetch('/ckpts?run='+encodeURIComponent(view.value))).json();const cur=ckpt.value;ckpt.innerHTML=L.map(x=>`<option value='${x.path}'>${x.name} (${x.time})</option>`).join('');if([...ckpt.options].some(o=>o.value===cur))ckpt.value=cur}
+load();ckpts();setInterval(load,15000);setInterval(ckpts,60000);
 (async()=>{const R=await (await fetch('/refs')).json();refsel.innerHTML=Object.entries(R).map(([k,v])=>`<option value="${v}">${k}</option>`).join('');ref.value=refsel.value})();
 let VZ=null;
 function drawWave(v,bad){const c=wv.getContext('2d'),W=wv.width,H=wv.height;c.fillStyle='#07080a';c.fillRect(0,0,W,H);
@@ -138,7 +139,7 @@ const w=await (await fetch('/wer',{method:'POST',headers:{'X-Text':encodeURIComp
 async function cmp(){cmpb.disabled=true;cmpout.innerHTML=`<div><b>A</b> ${ma.options[ma.selectedIndex].text}<div id=ca>generating...</div></div><div><b>B</b> ${mb.options[mb.selectedIndex].text}<div id=cb>generating...</div></div>`;
 await one(ma.value,ca);await one(mb.value,cb);cmpb.disabled=false}
 async function go(){const b=document.querySelector('button');b.disabled=true;out.textContent='generating...';
-const r=await fetch('/synth',{method:'POST',body:JSON.stringify({run:view.value+'/ttl.pt',text:text.value,ref:ref.value,steps:+steps.value,cfg:+cfg.value,dur:+dur.value})});
+const r=await fetch('/synth',{method:'POST',body:JSON.stringify({run:ckpt.value,text:text.value,ref:ref.value,steps:+steps.value,cfg:+cfg.value,dur:+dur.value})});
 if(!r.ok){out.textContent=await r.text();b.disabled=false;return}
 const blob=await r.blob();const u=URL.createObjectURL(blob);gen.innerHTML=btn(u);durs();pl(gen.firstChild);out.textContent=decodeURIComponent(r.headers.get('x-info'))+'\\nwer: checking...';b.disabled=false;words.innerHTML='';showViz(blob);
 const w=await (await fetch('/wer',{method:'POST',headers:{'X-Text':encodeURIComponent(text.value)},body:blob})).json();out.textContent=out.textContent.replace('wer: checking...',w.error?'wer: failed '+w.error:`wer ${w.wer.toFixed(2)}\\nwhisper: ${w.heard}`);if(!w.error)showWords(w)}
@@ -242,6 +243,11 @@ class H(BaseHTTPRequestHandler):
             R.update({os.path.basename(f)[:-3]: f for f in sorted(glob.glob(os.path.join(HERE, "voices", "*.pt")))})  # voicepacks made by voice.py
             body = json.dumps(R).encode()
             self.send_response(200); self.send_header("Content-Type", "application/json"); self.end_headers(); self.wfile.write(body); return
+        if self.path.startswith("/ckpts?"):
+            rd = self.path.split("run=")[1].replace("%2F", "/")
+            fs = sorted([f for f in glob.glob(os.path.join(rd, "*.pt")) if re.match(r"(ttl|best)(_.*)?\.pt$", os.path.basename(f))], key=os.path.getmtime, reverse=True)
+            body = json.dumps([{"path": f, "name": os.path.basename(f), "time": time.strftime("%H:%M", time.localtime(os.path.getmtime(f)))} for f in fs]).encode()
+            self.send_response(200); self.send_header("Content-Type", "application/json"); self.end_headers(); self.wfile.write(body); return
         if self.path.startswith("/rounds?"):
             body = json.dumps(rounds(self.path.split("run=")[1].replace("%2F", "/"))).encode()
             self.send_response(200); self.send_header("Content-Type", "application/json"); self.end_headers(); self.wfile.write(body); return
@@ -251,9 +257,8 @@ class H(BaseHTTPRequestHandler):
             if not os.path.exists(f): f = os.path.join(q["run"].replace("%2F", "/"), "samples", q["f"].split("_", 1)[1])  # 002 layout: step_XXXXXX.wav
             if not os.path.exists(f): self.send_response(404); self.end_headers(); return
             self.send_response(200); self.send_header("Content-Type", "audio/wav"); self.end_headers(); self.wfile.write(open(f, "rb").read()); return
-        runs = sorted([r for r in glob.glob(P(p["runs_glob"])) if "todelete" not in r], key=os.path.getmtime, reverse=True)
-        views = "".join(f"<option value='{os.path.dirname(r)}'>{os.path.relpath(r, P('..')).rsplit('/', 1)[0]}</option>" for r in runs)
-        opts = "".join(f"<option value='{r}'>{os.path.relpath(r, P('..'))} ({time.strftime('%H:%M', time.localtime(os.path.getmtime(r)))})</option>" for r in runs)
+        runs = sorted([r for r in glob.glob(P(p["runs_glob"])) if "todelete" not in r and "smoke" not in r and re.match(r"(ttl|best)(_.*)?\.pt$", os.path.basename(r))], key=os.path.getmtime, reverse=True)
+        views = "".join(f"<option value='{v}'>{os.path.relpath(v, P('..'))}</option>" for v in dict.fromkeys(os.path.dirname(r) for r in runs))
         s = c["synth"]
         body = (HTML % (views, c["ttl"]["sample_text"], P(s["ref_clip"]), s["steps"], s["cfg"], s["duration_scale"], views, views)).encode()
         self.send_response(200); self.send_header("Content-Type", "text/html; charset=utf-8"); self.end_headers(); self.wfile.write(body)
