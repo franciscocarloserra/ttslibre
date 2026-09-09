@@ -284,11 +284,11 @@ def _elapsed(log):
 
 
 def overview():
-    """One row per training run (progress.log present): experiment, run, wall time, data, init, question. Sorted by wall time, longest first."""
+    """One row per training run (progress.log present): experiment, run, wall time, data, init, question. Newest first (progress.log mtime)."""
     rows, seen = [], set()
     for log in glob.glob(os.path.join(HERE, "*", "[0-9][0-9][0-9]-*", "runs", "*", "progress.log")):
         rd = os.path.dirname(log); real = os.path.realpath(rd)
-        if real in seen or "todelete" in rd or "smoke" in rd or os.path.islink(rd): continue  # symlinked runs (015 teacher -> 014) are listed once, at their owner
+        if real in seen or "todelete" in rd or "smoke" in rd or "preflight" in rd or os.path.islink(rd): continue  # symlinked runs (015 teacher -> 014) are listed once, at their owner
         seen.add(real); exp = os.path.relpath(os.path.dirname(os.path.dirname(rd)), HERE)
         cfgf = os.path.join(rd, "config.effective.json"); cc = json.load(open(cfgf)) if os.path.exists(cfgf) else {}
         d = cc.get("data", {}); prep = d.get("prep_dir", ""); h = None
@@ -300,8 +300,8 @@ def overview():
         if os.path.exists(rf):
             m = re.search(r"\*\*Short\.\*\*\s*(.+)", open(rf).read()) or re.search(r"\*\*(?:Question|Goal)\.\*\*\s*(.+)", open(rf).read()); q = m.group(1) if m else ""  # one plain line per experiment README
         sec, el = _elapsed(log)
-        rows.append({"exp": exp, "run": os.path.basename(rd), "wall_s": sec, "wall": el, "data": os.path.basename(prep.rstrip("/")) if prep else "", "hours": h and h[0], "clips": h and h[1], "speakers": h and h[2], "init": (lambda m: f"{m.group(1)}/{m.group(2)}" if m else init)(re.search(r"(\d{3})-[^/]*/runs/([^/]+)", init)), "question": q})
-    return sorted(rows, key=lambda r: -r["wall_s"])
+        rows.append({"exp": exp, "run": os.path.basename(rd), "mtime": os.path.getmtime(log), "wall_s": sec, "wall": el, "data": os.path.basename(prep.rstrip("/")) if prep else "", "hours": h and h[0], "clips": h and h[1], "speakers": h and h[2], "init": (lambda m: f"{m.group(1)}/{m.group(2)}" if m else init)(re.search(r"(\d{3})-[^/]*/runs/([^/]+)", init)), "question": q})
+    return sorted(rows, key=lambda r: -r["mtime"])
 
 
 class H(BaseHTTPRequestHandler):
