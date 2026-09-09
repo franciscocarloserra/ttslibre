@@ -1,0 +1,213 @@
+{
+ "data": {
+  "prep_dir": "../../../datasets/mixed-es-en-de/prep",
+  "sample_rate": 24000,
+  "n_fft": 1024,
+  "hop": 256,
+  "n_mels": 100,
+  "mel_fmin": 0,
+  "mel_fmax": 12000,
+  "log_clamp": 1e-05,
+  "min_seconds": 1.0,
+  "max_seconds": 12.0,
+  "val_fraction": 0.05,
+  "seed": 0,
+  "raw_root": "/",
+  "latent_stats": "../../../datasets/openslr61/prep/latent_stats.pt",
+  "manifest_dir": "../../../datasets/manifests",
+  "prep_workers": 12,
+  "sources": {
+   "es": {
+    "prep": "../../../datasets/openslr61/prep",
+    "raw_root": "../../../datasets/openslr61"
+   },
+   "en": {
+    "prep": "../../../datasets/libritts-r/prep-clean460",
+    "raw_root": "../../../datasets/libritts-r/raw/LibriTTS_R"
+   },
+   "de": {
+    "prep": "../../../datasets/thorsten-de/prep",
+    "raw_root": "../../../datasets/thorsten-de/raw",
+    "metadata": "metadata.csv",
+    "wav_dir": "wavs",
+    "delimiter": "|",
+    "id_col": 0,
+    "text_col": 1,
+    "speaker": "thorsten",
+    "source": "Thorsten-Voice v02 (OpenSLR 95, German, one speaker)",
+    "license": "CC0-1.0",
+    "manifest": "thorsten-de.jsonl"
+   }
+  },
+  "hours_per_lang": 4.0,
+  "vocab_from": "../../../datasets/thorsten-de/prep/vocab.json",
+  "speaker": "",
+  "max_utts": 0,
+  "max_clip_seconds": 0,
+  "base_vocab": "../../../datasets/openslr61/prep/vocab.json"
+ },
+ "latent": {
+  "dim": 24,
+  "compress": 6
+ },
+ "ae": {
+  "hidden": 256,
+  "intermediate": 1024,
+  "kernel": 7,
+  "enc_layers": 6,
+  "dec_layers": 6,
+  "epochs": 40,
+  "batch": 16,
+  "crop_frames": 384,
+  "lr": 0.0005,
+  "amp": true,
+  "log_every": 50
+ },
+ "ttl": {
+  "char_dim": 128,
+  "text_hidden": 128,
+  "text_intermediate": 512,
+  "text_conv_layers": 6,
+  "text_conv_dilations": [
+   1,
+   1,
+   2,
+   2,
+   4,
+   4
+  ],
+  "text_attn_layers": 4,
+  "text_attn_heads": 4,
+  "ref_hidden": 128,
+  "ref_intermediate": 512,
+  "ref_conv_layers": 6,
+  "n_style": 50,
+  "vf_hidden": 256,
+  "vf_intermediate": 1024,
+  "vf_blocks": 4,
+  "vf_dilations": [
+   1,
+   2,
+   4,
+   8
+  ],
+  "vf_plain_layers": 2,
+  "vf_last_layers": 4,
+  "vf_heads": 4,
+  "kernel": 5,
+  "time_dim": 64,
+  "sigma_min": 1e-08,
+  "p_uncond": 0.0,
+  "ref_min_seconds": 0.5,
+  "ref_max_seconds": 4.0,
+  "ref_max_fraction": 0.5,
+  "batch_expand": 8,
+  "steps": 400000,
+  "batch": 48,
+  "max_seconds": 8.0,
+  "lr": 0.0005,
+  "lr_halve_every": 60000,
+  "warmup": 500,
+  "amp": true,
+  "grad_clip": 5.0,
+  "log_every": 25,
+  "ckpt_every": 3000,
+  "val_every": 10000,
+  "sample_every": 3000,
+  "sample_text": "<es>El pijama de rayas es azul</es>",
+  "sample_steps": 16,
+  "sample_cfg": 1.0,
+  "max_minutes": 240,
+  "stop_wer_window": 3,
+  "init_from": "",
+  "fail_after_minutes": 100000,
+  "fail_wer": 9,
+  "sample_extra": [
+   [
+    "novel_es",
+    "<es>El perro corre por el parque todas las tardes.</es>"
+   ],
+   [
+    "novel_en",
+    "<en>Please call the doctor before noon tomorrow.</en>"
+   ],
+   [
+    "novel_de",
+    "<de>Der Zug nach Berlin fährt heute etwas später ab.</de>"
+   ]
+  ],
+  "stop_wer": 0.3,
+  "keep_checkpoints": 4,
+  "lang": "es",
+  "sample_heldout_per_lang": 3,
+  "wer_chars": "a-zñ'"
+ },
+ "dp": {
+  "char_dim": 64,
+  "intermediate": 256,
+  "conv_layers": 6,
+  "attn_layers": 2,
+  "attn_heads": 2,
+  "ref_layers": 4,
+  "n_style": 8,
+  "style_dim": 16,
+  "hidden": 128,
+  "loss_weight": 0.1
+ },
+ "synth": {
+  "steps": 16,
+  "cfg": 2.0,
+  "duration_scale": 1.0,
+  "lang": "en",
+  "cpu_threads": 8,
+  "ref_clip": "../../../datasets/openslr61/arf_00295_00000740990.wav"
+ },
+ "smoke": {
+  "ae_epochs": 1,
+  "ttl_steps": 100,
+  "batch": 32,
+  "max_seconds": 8.0
+ },
+ "panel": {
+  "port": 7807,
+  "device": "cuda",
+  "cpu_threads": 8,
+  "runs_glob": "../../*/*/runs/**/*.pt",
+  "viz": {
+   "n_fft": 1024,
+   "hop": 256,
+   "n_mels": 128,
+   "fmax_hz": 8000,
+   "wave_px": 1200,
+   "whisper_words_query": "?words=1"
+  },
+  "hot_seconds": 120,
+  "overview_rows": 5,
+  "open_rounds": 1
+ },
+ "gpu": {
+  "util_target_pct": 70,
+  "util_tolerance_pct": 10,
+  "batch_step": 8,
+  "batch_max": 128,
+  "calib_max_tries": 3,
+  "util_sample_seconds": 2,
+  "smoke_measure_seconds": 90,
+  "smoke_skip_seconds": 25,
+  "batch_candidates": [
+   16,
+   24,
+   32
+  ],
+  "util_every_logs": 4
+ },
+ "eval": {
+  "whisper_url": "http://localhost:6969/transcribe",
+  "whisper_token_env": "WHISPER_TOKEN"
+ },
+ "log": {
+  "print_every_logs": 8,
+  "trend_window": 20,
+  "trend_tol": 0.02
+ }
+}
