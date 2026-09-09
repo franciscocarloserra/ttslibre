@@ -6,7 +6,10 @@ A text-to-speech model under 100M parameters that answers instantly on a laptop 
 
 
 
-https://github.com/user-attachments/assets/5b9e8570-dd0d-45d7-b831-092cc7d8bfed
+
+https://github.com/user-attachments/assets/b9654c4a-c0ad-4bae-af5a-f90dc6363552
+
+
 
 
 
