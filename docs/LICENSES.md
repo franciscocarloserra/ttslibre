@@ -56,6 +56,12 @@ Reading:
 - Whether a *dataset* of Supertonic output, published on its own, must carry the restrictions: paragraph 6 says output is free of the licensor's rights, but "No use of the output can contravene any provision", and training a CC0 model on it would contravene 4.a. **Ambiguous** for the dataset alone; unambiguous for the model trained on it.
 - Supertonic 3's own training data is not disclosed (see `docs/REFERENCES.md`).
 
+## OpenSLR 61 (Argentinian Spanish, used in experiment 014)
+
+Source: `datasets/openslr61/LICENSE` shipped inside `es_ar_female.zip` / `es_ar_male.zip` from https://www.openslr.org/61/ (read locally on 2026-09-09; the file is the full text of "Attribution-ShareAlike 4.0 International").
+
+CC BY-SA 4.0: attribution required (Google, "Crowdsourced high-quality Argentinian Spanish speech data set"), and derived works that are "Adapted Material" must be shared under the same or a compatible licence. Whether model weights are Adapted Material of the training audio is not settled; this project treats them as such and releases the 014 checkpoint and the voicepacks made from its clips under CC BY-SA 4.0, not CC0. Mels, latents and manifests derived from the audio are CC BY-SA 4.0 as well.
+
 ## External code used by experiment 001
 
 | Component | License | Source |
@@ -71,6 +77,7 @@ Vocos weights were trained on LibriTTS (CC BY 4.0) by their authors; the MIT lic
 |---|---|---|
 | LJSpeech | Public domain | yes |
 | LibriTTS-R | CC BY 4.0 | no (attributed track only) |
+| OpenSLR 61 (es-AR) | CC BY-SA 4.0 | no (attributed track; derived weights released CC BY-SA 4.0) |
 | LibriVox raw recordings | Public domain | yes |
 | Common Voice | CC0 | yes |
 | Kokoro-82M synthetic output | Apache 2.0 weights, no output clause | conditional: no stated restriction; copyright status of output ambiguous |
