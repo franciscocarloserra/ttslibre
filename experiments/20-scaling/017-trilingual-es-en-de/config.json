@@ -40,7 +40,7 @@
    }
   },
   "hours_per_lang": 4.0,
-  "vocab_from": "../../../datasets/thorsten-de/prep/vocab.json",
+  "vocab_from": "../../../datasets/mixed-es-en/prep/vocab.json",
   "speaker": "",
   "max_utts": 0,
   "max_clip_seconds": 0,
@@ -119,7 +119,7 @@
   "sample_cfg": 1.0,
   "max_minutes": 240,
   "stop_wer_window": 3,
-  "init_from": "",
+  "init_from": "../016-mixed-es-en/runs/mix4h4h_tag/ttl.pt",
   "fail_after_minutes": 100000,
   "fail_wer": 9,
   "sample_extra": [

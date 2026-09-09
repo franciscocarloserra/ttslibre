@@ -35,5 +35,7 @@ with open(os.path.join(out, "val.jsonl"), "w") as f:
     for r in mixed[:nv]: f.write(json.dumps(r) + "\n")
 with open(os.path.join(out, "train.jsonl"), "w") as f:
     for r in mixed[nv:]: f.write(json.dumps(r) + "\n")
-json.dump(json.load(open(P(d["vocab_from"]))) + [f"<{l}>" for l in d["sources"]] + [f"</{l}>" for l in d["sources"]], open(os.path.join(out, "vocab.json"), "w")); shutil.copy(P(d["latent_stats"]), os.path.join(out, "latent_stats.pt"))
+base = json.load(open(P(d["vocab_from"]))); tags = [f"<{l}>" for l in d["sources"]] + [f"</{l}>" for l in d["sources"]]
+new = sorted({ch for v in picked.values() for r in v for ch in r["text"].split(">", 1)[1].rsplit("<", 1)[0]} - set(base)) + [x for x in tags if x not in base]  # base vocab (016: chars + es/en tags) then new chars and tags, ids of the warm-start checkpoint unchanged
+json.dump(base + new, open(os.path.join(out, "vocab.json"), "w"), ensure_ascii=False); shutil.copy(P(d["latent_stats"]), os.path.join(out, "latent_stats.pt"))
 print(f"train={len(mixed)-nv} val={nv} hours={sum(r['seconds'] for r in mixed)/3600:.2f} per lang " + ", ".join(f"{l} {sum(r['seconds'] for r in v)/3600:.2f} h {len(v)} clips" for l, v in picked.items()))
