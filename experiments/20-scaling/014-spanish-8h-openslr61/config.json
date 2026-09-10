@@ -108,7 +108,7 @@
   "sample_extra": [
    [
     "novel1",
-    "Ma\u00f1ana vamos a la playa con los chicos."
+    "Mañana vamos a la playa con los chicos."
    ],
    [
     "novel2",
@@ -184,7 +184,8 @@
   },
   "hot_seconds": 120,
   "overview_rows": 5,
-  "open_rounds": 1
+  "open_rounds": 1,
+  "chart_smooth": 5
  },
  "overnight": {
   "end_hour": 4,

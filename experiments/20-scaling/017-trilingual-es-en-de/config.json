@@ -183,7 +183,8 @@
   },
   "hot_seconds": 120,
   "overview_rows": 5,
-  "open_rounds": 1
+  "open_rounds": 1,
+  "chart_smooth": 5
  },
  "gpu": {
   "util_target_pct": 70,

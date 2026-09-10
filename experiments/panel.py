@@ -119,15 +119,21 @@ let cur=null;const AU=new Audio();AU.onended=()=>{if(cur){cur.textContent='▶ '
 function pl(b){if(cur===b){AU.pause();AU.currentTime=0;b.textContent='▶ '+b.dataset.d;cur=null;return}if(cur){cur.textContent='▶ '+cur.dataset.d}cur=b;AU.src=b.dataset.src;AU.play();b.textContent='■ '+b.dataset.d}
 function btn(src){return `<button class=play data-src="${src}" data-d="…" onclick="pl(this)">▶ …</button>`}
 const DUR={};function durs(){for(const b of document.querySelectorAll('button.play[data-d="…"]')){const k=b.dataset.src;if(DUR[k]){b.dataset.d=DUR[k];b.textContent='▶ '+DUR[k];continue}if(DUR[k]===null)continue;DUR[k]=null;const a=new Audio();a.preload='metadata';a.onloadedmetadata=()=>{DUR[k]=a.duration.toFixed(1)+'s';durs()};a.src=k}}
-const wc=w=>{const x=Math.min(1,Math.max(0,w));return `hsl(${120*(1-x)},70%%,50%%)`};const COL={train:'#6c6',knownwords:'#fc6',heldout1:'#f66',heldout2:'#c6f'};
+const wc=w=>{const x=Math.min(1,Math.max(0,w));return `hsl(${120*(1-x)},70%%,50%%)`};const COL={train:'#6c6',knownwords:'#fc6',heldout1:'#f66',heldout2:'#c6f'};const SCOL={es:'#ff4',en:'#4cf',heldout:'#fff'};
 const el=(t,a)=>{const e=document.createElementNS('http://www.w3.org/2000/svg',t);for(const k in a)e.setAttribute(k,a[k]);return e};
 async function load(){const j=await (await fetch('/rounds?run='+encodeURIComponent(view.value))).json();const d=j.rounds,S=j.sentences;
 const W=700,H=220,L=40,B=24,mx=Math.max(1,...d.map(r=>r.step)),my=Math.max(1,...d.map(r=>r.wer));
 const X=s=>L+(W-L-10)*s/mx,Y=w=>H-B-(H-B-10)*w/my;const c=document.getElementById('chart');c.textContent='';
 for(const v of [0,0.5,1,1.5,2]) if(v<=my){c.append(el('line',{x1:L,x2:W,y1:Y(v),y2:Y(v),stroke:'#333'}));const t=el('text',{x:2,y:Y(v)+4,fill:'#888','font-size':11});t.textContent=v;c.append(t)}
 const names=[...new Set(d.map(r=>r.name))];
-names.forEach((n,i)=>{c.append(el('polyline',{points:d.filter(r=>r.name==n).map(r=>X(r.step)+','+Y(r.wer)).join(' '),fill:'none',stroke:COL[n]||'#aaa','stroke-width':2}));
+names.forEach((n,i)=>{c.append(el('polyline',{points:d.filter(r=>r.name==n).map(r=>X(r.step)+','+Y(r.wer)).join(' '),fill:'none',stroke:COL[n]||'#aaa','stroke-width':1,opacity:SMOOTH>1?0.25:1}));
 const t=el('text',{x:L+10+i*130,y:14,fill:COL[n]||'#aaa','font-size':12});t.textContent=n+' (wer)';c.append(t)});
+// smoothed per-language mean of held-out probes: moving average over SMOOTH rounds (panel.chart_smooth), drawn thick
+if(SMOOTH>1){const G={};for(const r of d){const m=/^heldout_?([a-z]{2})?/.exec(r.name);if(!m)continue;const g=m[1]||'heldout';(G[g]=G[g]||{})[r.step]=(G[g][r.step]||[]).concat(r.wer)}
+Object.entries(G).forEach(([g,by],i)=>{const st=Object.keys(by).map(Number).sort((a,b)=>a-b);const mean=st.map(s=>by[s].reduce((a,b)=>a+b)/by[s].length);
+const sm=mean.map((_,j)=>{const w=mean.slice(Math.max(0,j-SMOOTH+1),j+1);return w.reduce((a,b)=>a+b)/w.length});const col=SCOL[g]||'#fff';
+c.append(el('polyline',{points:st.map((s,j)=>X(s)+','+Y(Math.min(sm[j],my))).join(' '),fill:'none',stroke:col,'stroke-width':3}));
+const t=el('text',{x:L+10+i*130,y:28,fill:col,'font-size':12});t.textContent=`heldout ${g} mean, avg ${SMOOTH} rounds`;c.append(t)})}
 const EL={};for(const r of d)if(r.elapsed)EL[r.step]=r.elapsed;const ks=Object.keys(EL).map(Number).sort((a,b)=>a-b);
 for(let i=1;i<=5;i++){const s=Math.round(mx*i/5);const k=ks.length?ks.reduce((p,q)=>Math.abs(q-s)<Math.abs(p-s)?q:p):s;c.append(el('line',{x1:X(s),x2:X(s),y1:H-B,y2:H-B+4,stroke:'#666'}));const t=el('text',{x:X(s),y:H-6,fill:'#888','font-size':11,'text-anchor':'end'});const hrs=e=>{const m=/(\d+)h(\d+)m|(\d+)m(\d+)s/.exec(e||'');return m?(m[1]?+m[1]+m[2]/60:m[3]/60).toFixed(1)+' h':''};t.textContent=ks.length?hrs(EL[k]):'step '+s;c.append(t)}
 const steps=[...new Set(d.map(r=>r.step))].sort((a,b)=>b-a);const N=steps.length;let h='<h3>Rounds</h3>';
@@ -137,7 +143,7 @@ for(const r of rs) h+=`<tr><td style="color:${COL[r.name]||'#aaa'};white-space:n
 h+='<details><summary>what the probe names mean</summary>'+legend+'</details>';
 const rd=document.getElementById('rounds');if(rd.dataset.h!==h){rd.innerHTML=h;rd.dataset.h=h;durs()}}
 async function ckpts(){const L=await (await fetch('/ckpts?run='+encodeURIComponent(view.value))).json();const cur=ckpt.value;ckpt.innerHTML=L.map(x=>`<option value='${x.path}'>${x.name} (${x.time})</option>`).join('');if([...ckpt.options].some(o=>o.value===cur))ckpt.value=cur}
-let OVN=%d,OPEN=%d;async function ov(){const R=await (await fetch('/overview')).json();const rows=R.slice(0,OVN);let h='';
+let OVN=%d,OPEN=%d,SMOOTH=%d;async function ov(){const R=await (await fetch('/overview')).json();const rows=R.slice(0,OVN);let h='';
 for(const r of rows)h+=`<div style="border:1px solid #333;border-radius:6px;padding:.5em;margin:.4em 0"><div><b>${r.wall}</b> <span style="color:#aaa">${r.exp}/${r.run}</span></div><div style="color:#ddd;margin:.2em 0">${r.question}</div><div style="color:#888;font-size:13px">${r.data}${r.hours!=null?` · ${r.hours} h · ${r.clips} clips · ${r.speakers} spk`:''} · init ${r.init}</div></div>`;
 if(R.length>OVN)h+=`<button class=play style="width:auto" onclick="OVN+=%d;ov()">+%d more (${R.length-OVN} left)</button>`;ov_el.innerHTML=h}
 const ov_el=document.getElementById('ov');ov();
@@ -336,7 +342,7 @@ class H(BaseHTTPRequestHandler):
         runs = sorted([r for r in glob.glob(P(p["runs_glob"]), recursive=True) if "todelete" not in r and "smoke" not in r and re.match(r"(ttl|best)(_.*)?\.pt$", os.path.basename(r))], key=os.path.getmtime, reverse=True)
         views = "".join(f"<option value='{v}'>{os.path.relpath(v, P('../..'))}</option>" for v in dict.fromkeys(os.path.dirname(r) for r in runs))
         s = c["synth"]; files = "".join(f"<option value='{r}'>{os.path.relpath(r, P('../..'))}</option>" for r in runs)
-        body = (HTML % (views, c["ttl"]["sample_text"], P(s["ref_clip"]), s["steps"], s["cfg"], s["duration_scale"], s.get("lang", ""), files, s["steps"], s["cfg"], files, s["steps"], s["cfg"], p["overview_rows"], p.get("open_rounds", 1), p["overview_rows"], p["overview_rows"])).encode()
+        body = (HTML % (views, c["ttl"]["sample_text"], P(s["ref_clip"]), s["steps"], s["cfg"], s["duration_scale"], s.get("lang", ""), files, s["steps"], s["cfg"], files, s["steps"], s["cfg"], p["overview_rows"], p.get("open_rounds", 1), p.get("chart_smooth", 1), p["overview_rows"], p["overview_rows"])).encode()
         self.send_response(200); self.send_header("Content-Type", "text/html; charset=utf-8"); self.end_headers(); self.wfile.write(body)
 
     def do_POST(self):
