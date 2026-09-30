@@ -2,7 +2,8 @@
 
 **Let's train the FOSS Supertonic / Kokoro successor.**
 
-A text-to-speech model under 100M parameters that answers instantly on a laptop CPU, sounds at least as good as Supertonic 3 and more expressive, and ships with everything needed to reproduce it.
+Training recipe for your own local TTS model from scratch.
+Clone it, fork it, tweak it, share it, train it, use it.
 
 
 
