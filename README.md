@@ -2,8 +2,11 @@
 
 **Let's train the FOSS Supertonic / Kokoro successor.**
 
-Training recipe for your own local TTS model from scratch.
+Training recipe for your own local tiny TTS model from scratch.
+
 Clone it, fork it, tweak it, share it, train it, use it.
+
+A guy from germany said it trains great on youtube data.
 
 
 
